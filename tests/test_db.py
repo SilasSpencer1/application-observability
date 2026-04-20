@@ -76,3 +76,17 @@ def test_last_event_at_returns_max(db):
     _record(db, "m1", "applied", occurred_at="2026-03-01T10:00:00Z")
     _record(db, "m2", "next_step", occurred_at="2026-03-08T10:00:00Z")
     assert db.last_event_at() == "2026-03-08T10:00:00Z"
+
+def test_older_event_does_not_clobber_newer_status(db):
+    db.init_schema()
+    _record(db, "m1", "applied", occurred_at="2026-03-01T10:00:00Z")
+    _record(db, "m3", "next_step", occurred_at="2026-03-10T10:00:00Z")
+    # An older event arriving late (e.g. backfill replay) should still be
+    # logged as an event, but must not move current_status backwards.
+    _record(db, "m2", "rejected", occurred_at="2026-03-05T10:00:00Z")
+    with db.connect() as conn:
+        app = conn.execute("SELECT * FROM applications").fetchone()
+        events = conn.execute("SELECT status FROM status_events ORDER BY occurred_at").fetchall()
+    assert app["current_status"] == "next_step"
+    assert app["status_updated_at"] == "2026-03-10T10:00:00Z"
+    assert [e["status"] for e in events] == ["applied", "rejected", "next_step"]
