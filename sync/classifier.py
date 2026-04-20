@@ -7,7 +7,7 @@ import yaml
 ROLE_PATTERNS = [
     re.compile(r'"([^"]+)"'),                                                 # quoted phrase
     re.compile(r"\bthe ([A-Z][\w \-/]+?) (?:role|position)"),                 # "...the X role/position..."
-    re.compile(r"received your application for (?:the )?([A-Z][\w \-/]+?)(?:\.|$| position)"),
+    re.compile(r"received your application for (?:the )?([A-Z][\w \-/]+?)(?:\.|$|\n|\s+(?:role|position|at)\b)"),
 ]
 
 @dataclass(frozen=True)
