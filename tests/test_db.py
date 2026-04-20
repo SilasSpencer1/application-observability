@@ -66,3 +66,13 @@ def test_non_applied_event_with_no_existing_app_is_skipped(db):
     with db.connect() as conn:
         apps = conn.execute("SELECT COUNT(*) AS c FROM applications").fetchone()
     assert apps["c"] == 0
+
+def test_last_event_at_returns_none_when_empty(db):
+    db.init_schema()
+    assert db.last_event_at() is None
+
+def test_last_event_at_returns_max(db):
+    db.init_schema()
+    _record(db, "m1", "applied", occurred_at="2026-03-01T10:00:00Z")
+    _record(db, "m2", "next_step", occurred_at="2026-03-08T10:00:00Z")
+    assert db.last_event_at() == "2026-03-08T10:00:00Z"

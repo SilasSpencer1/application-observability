@@ -101,3 +101,10 @@ class Database:
                 (app_id, classification.status, message_id, occurred_at),
             )
             return app_id
+
+    def last_event_at(self) -> str | None:
+        with self.connect() as conn:
+            row = conn.execute(
+                "SELECT MAX(occurred_at) AS m FROM status_events"
+            ).fetchone()
+        return row["m"]
