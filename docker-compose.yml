@@ -1,0 +1,20 @@
+services:
+  grafana:
+    image: grafana/grafana-oss:11.2.0
+    container_name: aao-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_INSTALL_PLUGINS: "frser-sqlite-datasource"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+      - /Users/silas.spencer/.application-observability/jobs.db:/var/lib/grafana/jobs.db:ro
+
+volumes:
+  grafana-data:

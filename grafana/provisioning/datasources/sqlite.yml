@@ -1,0 +1,9 @@
+apiVersion: 1
+datasources:
+  - name: jobs
+    type: frser-sqlite-datasource
+    uid: jobs
+    access: proxy
+    isDefault: true
+    jsonData:
+      path: /var/lib/grafana/jobs.db
