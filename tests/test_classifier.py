@@ -41,3 +41,12 @@ def test_status_detection_for_each_fixture(classifier, fixtures):
         assert classifier.detect_status(email) == fx["expected_status"], (
             f"{fx['id']} status mismatch"
         )
+
+def test_company_extraction(classifier, fixtures):
+    for fx in fixtures:
+        if fx["expected_company"] is None:
+            continue
+        email = email_from_fixture(fx)
+        assert classifier.extract_company(email) == fx["expected_company"], (
+            f"{fx['id']} company mismatch"
+        )

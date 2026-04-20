@@ -38,3 +38,30 @@ class Classifier:
             if any(p in haystack for p in patterns):
                 return status
         return None
+
+    def _is_ats_sender(self, address: str) -> bool:
+        addr = address.lower()
+        for domains in self._rules["ats_senders"].values():
+            if any(addr.endswith("@" + d) or addr.endswith("." + d) for d in domains):
+                return True
+        return False
+
+    def _strip_company_suffixes(self, name: str) -> str:
+        result = name
+        for suffix in self._rules["company_suffix_strip"]:
+            lower_suffix = suffix.lower()
+            if result.lower().endswith(lower_suffix):
+                result = result[: -len(lower_suffix)]
+        return result.strip(" -|·")
+
+    def extract_company(self, email: Email) -> str:
+        if email.from_name:
+            cleaned = self._strip_company_suffixes(email.from_name)
+            if cleaned:
+                return cleaned
+        if "@" in email.from_address:
+            domain = email.from_address.split("@", 1)[1]
+            host = domain.split(".")[0]
+            if host:
+                return host.capitalize()
+        return "Unknown"
