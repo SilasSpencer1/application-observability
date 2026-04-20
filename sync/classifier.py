@@ -87,3 +87,15 @@ class Classifier:
                 if m:
                     return m.group(1).strip()
         return None
+
+    def classify(self, email: Email) -> Classification | None:
+        if not self.passes_job_filter(email):
+            return None
+        status = self.detect_status(email)
+        if status is None:
+            return None
+        return Classification(
+            status=status,
+            company=self.extract_company(email),
+            role=self.extract_role(email),
+        )

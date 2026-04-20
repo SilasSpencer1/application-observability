@@ -70,3 +70,14 @@ def test_extract_company_returns_unknown_for_ats_sender_without_display_name(cla
         received_at="2026-03-01T00:00:00Z",
     )
     assert classifier.extract_company(email) == "Unknown"
+
+def test_classify_full_pipeline(classifier, fixtures):
+    for fx in fixtures:
+        result = classifier.classify(email_from_fixture(fx))
+        if fx["expected_status"] is None:
+            assert result is None, f"{fx['id']} should have been skipped, got {result}"
+        else:
+            assert result is not None, f"{fx['id']} should have classified"
+            assert result.status == fx["expected_status"]
+            assert result.company == fx["expected_company"]
+            assert result.role == fx["expected_role"]

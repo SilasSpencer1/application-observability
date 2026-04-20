@@ -66,6 +66,17 @@
     "expected_role": "Data Engineer"
   },
   {
+    "id": "msg-newsletter-with-keyword",
+    "subject": "Weekly engineer newsletter: top 10 tools",
+    "from_name": "DevWeekly",
+    "from_address": "hello@devweekly.io",
+    "body": "This week's top tools for engineers include new frameworks and practices. Subscribe for more.",
+    "received_at": "2026-03-20T08:00:00Z",
+    "expected_status": null,
+    "expected_company": null,
+    "expected_role": null
+  },
+  {
     "id": "msg-noise-newsletter",
     "subject": "Weekly newsletter",
     "from_name": "Random News",
