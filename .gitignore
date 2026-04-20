@@ -17,5 +17,8 @@ venv/
 .idea/
 .DS_Store
 
+# Claude
+.claude/
+
 # Grafana persistent volume
 grafana/data/
