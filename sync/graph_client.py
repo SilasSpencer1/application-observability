@@ -1,5 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 import sys
 import logging
@@ -13,6 +14,22 @@ SCOPES = ["Mail.Read"]
 DEFAULT_TOKEN_PATH = Path.home() / ".application-observability" / "token.json"
 
 log = logging.getLogger(__name__)
+
+
+def normalize_iso_utc(raw: str) -> str:
+    """Convert any ISO-8601 timestamp Graph may emit to a stable UTC form.
+
+    Produces exactly: YYYY-MM-DDTHH:MM:SSZ (no fractional seconds, always Z).
+    """
+    s = raw
+    if s.endswith("Z"):
+        s = s[:-1] + "+00:00"
+    dt = datetime.fromisoformat(s)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    else:
+        dt = dt.astimezone(timezone.utc)
+    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 @dataclass
@@ -65,3 +82,43 @@ class GraphClient:
             raise RuntimeError(f"Token acquisition failed: {result}")
         self._persist_cache()
         return result["access_token"]
+
+    def fetch_messages_since(self, since_iso: str | None):
+        """Yield GraphMessage rows received at or after `since_iso` (UTC ISO 8601).
+
+        If since_iso is None, fetches the user's most recent messages.
+        Stops paginating after 5000 messages as a safety bound.
+        """
+        token = self.acquire_token()
+        headers = {"Authorization": f"Bearer {token}"}
+        params = {
+            "$select": "id,subject,from,bodyPreview,receivedDateTime",
+            "$top": "50",
+            "$orderby": "receivedDateTime desc",
+        }
+        if since_iso:
+            params["$filter"] = f"receivedDateTime ge {since_iso}"
+
+        url = f"{GRAPH_BASE}/me/messages"
+        seen = 0
+        while url and seen < 5000:
+            resp = requests.get(url, headers=headers, params=params, timeout=30)
+            resp.raise_for_status()
+            payload = resp.json()
+            for raw in payload.get("value", []):
+                seen += 1
+                yield self._to_message(raw)
+            url = payload.get("@odata.nextLink")
+            params = None
+
+    @staticmethod
+    def _to_message(raw: dict) -> GraphMessage:
+        sender = raw.get("from", {}).get("emailAddress", {})
+        return GraphMessage(
+            message_id=raw["id"],
+            subject=raw.get("subject", "") or "",
+            from_name=sender.get("name", "") or "",
+            from_address=sender.get("address", "") or "",
+            body=raw.get("bodyPreview", "") or "",
+            received_at=normalize_iso_utc(raw["receivedDateTime"]),
+        )
