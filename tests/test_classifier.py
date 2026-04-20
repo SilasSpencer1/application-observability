@@ -59,3 +59,14 @@ def test_role_extraction(classifier, fixtures):
         assert classifier.extract_role(email) == fx["expected_role"], (
             f"{fx['id']} role mismatch"
         )
+
+def test_extract_company_returns_unknown_for_ats_sender_without_display_name(classifier):
+    email = Email(
+        message_id="m-ats",
+        subject="Thank you for applying to Software Engineer",
+        from_name="",
+        from_address="no-reply@us.greenhouse-mail.io",
+        body="",
+        received_at="2026-03-01T00:00:00Z",
+    )
+    assert classifier.extract_company(email) == "Unknown"

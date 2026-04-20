@@ -67,6 +67,8 @@ class Classifier:
             cleaned = self._strip_company_suffixes(email.from_name)
             if cleaned:
                 return cleaned
+        if self._is_ats_sender(email.from_address):
+            return "Unknown"
         if "@" in email.from_address:
             domain = email.from_address.split("@", 1)[1]
             host = domain.split(".")[0]
