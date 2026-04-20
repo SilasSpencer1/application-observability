@@ -4,8 +4,9 @@ from pathlib import Path
 import re
 import yaml
 
+_QUOTED = re.compile(r'"([^"]+)"')
+
 ROLE_PATTERNS = [
-    re.compile(r'"([^"]+)"'),                                                 # quoted phrase
     re.compile(r"\bthe ([A-Z][\w \-/]+?) (?:role|position)"),                 # "...the X role/position..."
     re.compile(r"received your application for (?:the )?([A-Z][\w \-/]+?)(?:\.|$|\n|\s+(?:role|position|at)\b)"),
 ]
@@ -74,6 +75,10 @@ class Classifier:
         return "Unknown"
 
     def extract_role(self, email: Email) -> str | None:
+        # Quoted text in subjects is usually the role; in bodies it's often unrelated.
+        subject_match = _QUOTED.search(email.subject)
+        if subject_match:
+            return subject_match.group(1).strip()
         for source in (email.subject, email.body):
             for pat in ROLE_PATTERNS:
                 m = pat.search(source)
