@@ -3,6 +3,8 @@ import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
 
+from sync.classifier import Classification
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS applications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,3 +49,62 @@ class Database:
     def init_schema(self) -> None:
         with self.connect() as conn:
             conn.executescript(SCHEMA)
+
+    def record_event(
+        self,
+        message_id: str,
+        classification: Classification,
+        occurred_at: str,
+    ) -> int | None:
+        """Insert a status event and update or create the parent application.
+
+        Returns the application_id touched, or None if the event was skipped.
+        Idempotent: a duplicate message_id is a no-op.
+        """
+        with self.connect() as conn:
+            existing = conn.execute(
+                "SELECT id FROM status_events WHERE email_id = ?", (message_id,)
+            ).fetchone()
+            if existing:
+                return None
+
+            company_norm = classification.company or "Unknown"
+            role_norm = classification.role
+
+            app_row = conn.execute(
+                "SELECT id, current_status, status_updated_at FROM applications "
+                "WHERE company = ? AND COALESCE(role, '') = COALESCE(?, '')",
+                (company_norm, role_norm),
+            ).fetchone()
+
+            if app_row is None:
+                if classification.status != "applied":
+                    return None
+                cur = conn.execute(
+                    "INSERT INTO applications "
+                    "(company, role, first_email_id, applied_at, current_status, status_updated_at) "
+                    "VALUES (?, ?, ?, ?, 'applied', ?)",
+                    (company_norm, role_norm, message_id, occurred_at, occurred_at),
+                )
+                app_id = cur.lastrowid
+            else:
+                app_id = app_row["id"]
+                if occurred_at >= app_row["status_updated_at"]:
+                    conn.execute(
+                        "UPDATE applications SET current_status = ?, status_updated_at = ? WHERE id = ?",
+                        (classification.status, occurred_at, app_id),
+                    )
+
+            conn.execute(
+                "INSERT INTO status_events (application_id, status, email_id, occurred_at) "
+                "VALUES (?, ?, ?, ?)",
+                (app_id, classification.status, message_id, occurred_at),
+            )
+            return app_id
+
+    def last_event_at(self) -> str | None:
+        with self.connect() as conn:
+            row = conn.execute(
+                "SELECT MAX(occurred_at) AS m FROM status_events"
+            ).fetchone()
+        return row["m"]
