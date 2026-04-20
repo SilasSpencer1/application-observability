@@ -31,3 +31,13 @@ def test_job_filter_skips_unrelated_email(classifier, fixtures):
 def test_job_filter_passes_engineering_email(classifier, fixtures):
     applied = next(f for f in fixtures if f["id"] == "msg-applied-greenhouse")
     assert classifier.passes_job_filter(email_from_fixture(applied)) is True
+
+def test_status_detection_for_each_fixture(classifier, fixtures):
+    for fx in fixtures:
+        email = email_from_fixture(fx)
+        if not classifier.passes_job_filter(email):
+            assert fx["expected_status"] is None, f"{fx['id']} unexpectedly filtered"
+            continue
+        assert classifier.detect_status(email) == fx["expected_status"], (
+            f"{fx['id']} status mismatch"
+        )

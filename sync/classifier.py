@@ -30,3 +30,11 @@ class Classifier:
     def passes_job_filter(self, email: Email) -> bool:
         haystack = f"{email.subject}\n{email.body}".lower()
         return any(kw in haystack for kw in self._job_filter)
+
+    def detect_status(self, email: Email) -> str | None:
+        haystack = f"{email.subject}\n{email.body}".lower()
+        for status in self._rules["status_order"]:
+            patterns = [p.lower() for p in self._rules["status_patterns"][status]]
+            if any(p in haystack for p in patterns):
+                return status
+        return None
