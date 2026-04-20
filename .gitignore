@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# Local data
+*.db
+*.db-journal
+.env
+~/.application-observability/
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
+
+# Grafana persistent volume
+grafana/data/
