@@ -1,0 +1,69 @@
+# Patterns are case-insensitive substrings unless prefixed with `re:`.
+# A `re:` prefix marks the rest of the value as a Python regex.
+
+job_filter:
+  # Skip the email entirely unless subject or body contains one of these.
+  - engineer
+  - developer
+  - software
+  - swe
+  - intern
+
+# Status rules are evaluated in this order; first match wins.
+status_order:
+  - offer
+  - next_step
+  - rejected
+  - applied
+
+status_patterns:
+  applied:
+    - "thank you for applying"
+    - "we received your application"
+    - "application received"
+    - "thanks for your interest"
+  rejected:
+    - "unfortunately"
+    - "we have decided to move forward with other candidates"
+    - "not moving forward"
+    - "no longer being considered"
+    - "we will not be progressing"
+  next_step:
+    - "next step"
+    - "schedule a"
+    - "phone screen"
+    - "interview"
+    - "would you be available"
+    - "recruiter would like to"
+  offer:
+    - "we are pleased to extend"
+    - "offer letter"
+    - "formal offer"
+
+# Sender domains we know are ATSes; used for company-name parsing hints.
+ats_senders:
+  greenhouse:
+    - "greenhouse.io"
+    - "us.greenhouse-mail.io"
+  lever:
+    - "hire.lever.co"
+    - "jobs.lever.co"
+  workday:
+    - "myworkday.com"
+    - "myworkdayjobs.com"
+  ashby:
+    - "ashbyhq.com"
+  smartrecruiters:
+    - "smartrecruiters.com"
+  icims:
+    - "icims.com"
+
+# Suffixes to strip when deriving a company name from a sender display name.
+company_suffix_strip:
+  - "Recruiting"
+  - "Talent"
+  - "Talent Acquisition"
+  - "Careers"
+  - "People Team"
+  - "no-reply"
+  - "noreply"

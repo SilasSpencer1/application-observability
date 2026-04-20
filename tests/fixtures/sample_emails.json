@@ -1,0 +1,79 @@
+[
+  {
+    "id": "msg-applied-greenhouse",
+    "subject": "Thank you for applying to Stripe",
+    "from_name": "Stripe Recruiting",
+    "from_address": "no-reply@us.greenhouse-mail.io",
+    "body": "Hi Silas, thank you for applying to the Software Engineer role at Stripe. We will review your application and follow up.",
+    "received_at": "2026-03-01T15:00:00Z",
+    "expected_status": "applied",
+    "expected_company": "Stripe",
+    "expected_role": "Software Engineer"
+  },
+  {
+    "id": "msg-applied-generic",
+    "subject": "We received your application for Backend Engineer",
+    "from_name": "Acme Talent",
+    "from_address": "talent@acme.com",
+    "body": "Hello, we received your application for the Backend Engineer position. Our team will get back to you soon.",
+    "received_at": "2026-03-02T10:00:00Z",
+    "expected_status": "applied",
+    "expected_company": "Acme",
+    "expected_role": "Backend Engineer"
+  },
+  {
+    "id": "msg-rejected-1",
+    "subject": "Update on your Stripe application",
+    "from_name": "Stripe Recruiting",
+    "from_address": "no-reply@us.greenhouse-mail.io",
+    "body": "Hi Silas, unfortunately we have decided to move forward with other candidates for the Software Engineer role.",
+    "received_at": "2026-03-10T15:00:00Z",
+    "expected_status": "rejected",
+    "expected_company": "Stripe",
+    "expected_role": "Software Engineer"
+  },
+  {
+    "id": "msg-next-step",
+    "subject": "Next steps for your Backend Engineer application",
+    "from_name": "Acme Talent",
+    "from_address": "talent@acme.com",
+    "body": "We would like to schedule a phone screen to discuss the Backend Engineer role. Please share availability.",
+    "received_at": "2026-03-08T10:00:00Z",
+    "expected_status": "next_step",
+    "expected_company": "Acme",
+    "expected_role": "Backend Engineer"
+  },
+  {
+    "id": "msg-offer",
+    "subject": "Your offer from Acme",
+    "from_name": "Acme People Team",
+    "from_address": "people@acme.com",
+    "body": "Congratulations Silas, we are pleased to extend a formal offer letter for the Backend Engineer position.",
+    "received_at": "2026-03-15T10:00:00Z",
+    "expected_status": "offer",
+    "expected_company": "Acme",
+    "expected_role": "Backend Engineer"
+  },
+  {
+    "id": "msg-noise-newsletter",
+    "subject": "Weekly newsletter",
+    "from_name": "Random News",
+    "from_address": "news@randomnews.com",
+    "body": "This week's top stories include software trends and engineering best practices. Thanks for subscribing!",
+    "received_at": "2026-03-09T08:00:00Z",
+    "expected_status": null,
+    "expected_company": null,
+    "expected_role": null
+  },
+  {
+    "id": "msg-noise-marketing",
+    "subject": "Thank you for applying to our beta program",
+    "from_name": "WidgetCo",
+    "from_address": "info@widgetco.com",
+    "body": "Thanks for joining our beta program for our new product launch. No engineering required!",
+    "received_at": "2026-03-09T08:00:00Z",
+    "expected_status": null,
+    "expected_company": null,
+    "expected_role": null
+  }
+]
