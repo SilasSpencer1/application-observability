@@ -1,7 +1,15 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
+import re
 import yaml
+
+_QUOTED = re.compile(r'"([^"]+)"')
+
+ROLE_PATTERNS = [
+    re.compile(r"\bthe ([A-Z][\w \-/]+?) (?:role|position)"),                 # "...the X role/position..."
+    re.compile(r"received your application for (?:the )?([A-Z][\w \-/]+?)(?:\.|$|\n|\s+(?:role|position|at)\b)"),
+]
 
 @dataclass(frozen=True)
 class Email:
@@ -37,4 +45,45 @@ class Classifier:
             patterns = [p.lower() for p in self._rules["status_patterns"][status]]
             if any(p in haystack for p in patterns):
                 return status
+        return None
+
+    def _is_ats_sender(self, address: str) -> bool:
+        addr = address.lower()
+        for domains in self._rules["ats_senders"].values():
+            if any(addr.endswith("@" + d) or addr.endswith("." + d) for d in domains):
+                return True
+        return False
+
+    def _strip_company_suffixes(self, name: str) -> str:
+        result = name
+        for suffix in self._rules["company_suffix_strip"]:
+            lower_suffix = suffix.lower()
+            if result.lower().endswith(lower_suffix):
+                result = result[: -len(lower_suffix)]
+        return result.strip(" -|·")
+
+    def extract_company(self, email: Email) -> str:
+        if email.from_name:
+            cleaned = self._strip_company_suffixes(email.from_name)
+            if cleaned:
+                return cleaned
+        if self._is_ats_sender(email.from_address):
+            return "Unknown"
+        if "@" in email.from_address:
+            domain = email.from_address.split("@", 1)[1]
+            host = domain.split(".")[0]
+            if host:
+                return host.capitalize()
+        return "Unknown"
+
+    def extract_role(self, email: Email) -> str | None:
+        # Quoted text in subjects is usually the role; in bodies it's often unrelated.
+        subject_match = _QUOTED.search(email.subject)
+        if subject_match:
+            return subject_match.group(1).strip()
+        for source in (email.subject, email.body):
+            for pat in ROLE_PATTERNS:
+                m = pat.search(source)
+                if m:
+                    return m.group(1).strip()
         return None
