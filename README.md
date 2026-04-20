@@ -1,30 +1,36 @@
 # application-observability
 
-A small local pipeline that turns your inbox into a picture of your job search. It reads job application emails from Outlook, figures out who you applied to and where things stand, stores it in SQLite, and shows it in a handful of Grafana dashboards.
+Keep track of where every job you applied to actually stands. Not in a spreadsheet you forget to update. In your inbox, automatically, with charts.
 
-## What it does
+## The idea
 
-Once an hour the sync worker pulls any new messages from your Microsoft 365 mailbox. It classifies each one as `applied`, `next_step`, `rejected`, or `offer` by looking for tell-tale phrases. The results go into a local database. Grafana reads that database and renders three dashboards:
+Every job application generates a paper trail in your email. A "thanks for applying" here, a "we'd love to chat" there, the occasional rejection, and if you are lucky an offer. It all arrives, and then it all disappears into the pile.
 
-- **Summary** for "where does everything stand right now"
-- **Time Series** for "how is activity changing over time"
-- **Funnel** for "how often does the first email turn into a real conversation"
+This project quietly reads that pile for you. Once an hour it pulls new messages from your Outlook mailbox, figures out which ones are job related, and tags each one as applied, next step, rejected, or offer. The results land in a local database. Grafana draws three dashboards on top:
 
-Everything runs on your Mac. Nothing gets uploaded anywhere.
+- A summary view, for the question "where does everything stand right now"
+- A time series view, for the question "am I sending more than I used to, and what's coming back"
+- A funnel view, for the question "how often does sending an application actually lead somewhere"
 
-## One-time setup
+Everything runs on your Mac. None of your mail ever leaves it.
 
-### 1. Register an app in Azure
+## Setting it up
 
-You need a client id so the sync worker can sign in to Microsoft Graph on your behalf.
+This takes about fifteen minutes the first time. Most of it is waiting for things to install or clicking through a Microsoft sign in page.
 
-1. Open the [Azure portal](https://portal.azure.com) and go to **App registrations**.
-2. Click **New registration**. Name it `application-observability`. Leave the account type on the default for your Microsoft 365 tenant.
-3. Go to **Authentication**, click **Add a platform**, pick **Mobile and desktop applications**, and tick the `https://login.microsoftonline.com/common/oauth2/nativeclient` redirect. Turn on **Allow public client flows**.
-4. Go to **API permissions**, click **Add a permission**, choose **Microsoft Graph**, then **Delegated permissions**, and add `Mail.Read`.
-5. Copy the **Application (client) ID** from the overview page. You will use this as `AAO_CLIENT_ID`.
+### Tell Microsoft this project can read your mail
 
-### 2. Install Python dependencies
+The sync worker signs in to your Outlook mailbox the same way any other Microsoft app would. You need to register the project once so it has an identity to sign in as.
+
+1. Open the [Azure portal](https://portal.azure.com) and search for **App registrations**.
+2. Click **New registration**. Name it anything you want. `application-observability` is fine. Leave the default account type.
+3. After it's created, go to **Authentication** in the side menu. Click **Add a platform**, pick **Mobile and desktop applications**, and check the box next to `https://login.microsoftonline.com/common/oauth2/nativeclient`. Scroll down and turn on **Allow public client flows**. Save.
+4. Go to **API permissions**, click **Add a permission**, choose **Microsoft Graph**, then **Delegated permissions**. Find `Mail.Read`, check it, and add it.
+5. On the app's overview page, copy the **Application (client) ID**. That's the value you'll use below.
+
+### Install the Python pieces
+
+From the project directory:
 
 ```bash
 python3.11 -m venv .venv
@@ -32,72 +38,89 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
-### 3. Backfill the last six months
+That creates a local virtual environment and pulls in the handful of libraries the sync worker needs.
+
+### Pull your history
+
+Run a one time backfill to load the last six months of mail into the database. Replace the placeholder with the client id you copied a minute ago.
 
 ```bash
 AAO_CLIENT_ID=<your-client-id> python -m sync.sync --backfill
 ```
 
-On first run the script prints a one-time code and a URL. Sign in on any device, approve the access, and the token gets cached so you never see that prompt again.
+On this first run, Microsoft will print a short code and a URL. Open the URL in any browser, sign in with your school email, and paste the code when asked. That happens once. After that the sync worker remembers who you are.
 
-After it finishes, the database lives at `~/.application-observability/jobs.db`.
+When it finishes, you'll have a file at `~/.application-observability/jobs.db`. That is your history.
 
-### 4. Schedule hourly syncs
+### Keep it running
 
-1. Open `launchd/com.silas.application-observability.plist` and replace `REPLACE_WITH_YOUR_CLIENT_ID` with the client id from step 1.
-2. Make sure the log directory exists:
+The sync worker should run on its own from now on, once an hour. macOS does this with something called launchd. There's a small config file in the `launchd/` folder. A couple of steps to install it:
+
+1. Open `launchd/com.silas.application-observability.plist` and replace `REPLACE_WITH_YOUR_CLIENT_ID` with the real client id.
+2. Create the folder where logs will live:
    ```bash
    mkdir -p ~/.application-observability/logs
    ```
-3. Install the plist:
+3. Install and activate the schedule:
    ```bash
    cp launchd/com.silas.application-observability.plist ~/Library/LaunchAgents/
    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.silas.application-observability.plist
    ```
 
-From here the sync worker runs every hour. If you want a run right now instead of waiting:
+The next run will happen within the hour. If you want to see it work right away, kick it off manually:
 
 ```bash
 launchctl kickstart gui/$(id -u)/com.silas.application-observability
 ```
 
-### 5. Start Grafana
+### Start the dashboards
 
 ```bash
 docker compose up -d
 ```
 
-Open [http://localhost:3000](http://localhost:3000). The three dashboards are pre-loaded. There is no login.
+Open [http://localhost:3000](http://localhost:3000). No username, no password, the three dashboards are already loaded.
 
-## Daily life
+## Day to day
 
-- Logs for the sync worker are at `~/.application-observability/logs/sync.log`. They rotate weekly.
-- To change how emails are classified, edit `sync/rules.yaml` and re-run the sync. No code changes needed.
-- To manually trigger a sync outside the hourly schedule: `launchctl kickstart gui/$(id -u)/com.silas.application-observability`.
+You shouldn't need to do anything. Every hour the worker wakes up, fetches anything new, classifies it, and the charts pick it up on their next refresh.
 
-## When things look wrong
+A few small things worth knowing:
 
-**Dashboards are empty.**
-Check that the database file has rows:
+**Logs live at `~/.application-observability/logs/sync.log`.** They rotate weekly, so they never balloon. Useful if something looks off.
 
+**The classifier is driven by a plain text file.** Open `sync/rules.yaml` and you'll see the phrases it looks for. If you spot an email it should have caught but didn't, add a phrase. No code changes.
+
+**To run a sync without waiting for the hourly tick:**
+```bash
+launchctl kickstart gui/$(id -u)/com.silas.application-observability
+```
+
+## When something doesn't look right
+
+**The dashboards are empty.**
+Check whether the database has anything in it:
 ```bash
 sqlite3 ~/.application-observability/jobs.db 'SELECT COUNT(*) FROM applications'
 ```
+If that is zero, the sync worker hasn't recorded anything yet. Open the log and see what it's doing.
 
-If it is zero, the sync has not recorded anything yet. Look at the sync log to see whether it ran, what it saw, and what it classified.
+**An email you remember clearly is not showing up.**
+The classifier's vocabulary is modest by design. Open `sync/rules.yaml`, add the phrase from the missing email, save, and trigger a sync. It'll pick it up the next time around.
 
-**An email you know you applied to is not showing up.**
-The rules are deliberately simple and miss some edge cases. Open `sync/rules.yaml` and add the phrase from the email you are missing. Then re-run: `launchctl kickstart gui/$(id -u)/com.silas.application-observability`.
+**Microsoft keeps asking you to sign in.**
+The token cache might have gotten wiped. Delete it and run the backfill once more to get a fresh one:
+```bash
+rm ~/.application-observability/token.json
+AAO_CLIENT_ID=<your-client-id> python -m sync.sync --backfill
+```
 
-**The sign-in prompt keeps coming back.**
-Delete `~/.application-observability/token.json` and rerun the backfill once to re-authenticate.
-
-**launchd looks silent.**
+**The hourly schedule seems quiet.**
+Ask macOS what it thinks of the job:
 ```bash
 launchctl print gui/$(id -u)/com.silas.application-observability
 ```
-
-The output shows the last exit status and anything launchd logged.
+The output includes the last exit status and anything launchd itself logged.
 
 ## Tests
 
@@ -105,10 +128,10 @@ The output shows the last exit status and anything launchd logged.
 pytest
 ```
 
-## Layout
+## How the project is laid out
 
-- `sync/` is the Python package. One file per responsibility.
-- `tests/` is the unit test suite.
-- `grafana/` holds the compose stack, provisioning config, and dashboard JSON.
-- `launchd/` holds the schedule file.
-- `docs/superpowers/specs/` has the design spec.
+- `sync/` is the Python package. One file per job (classifier, database, Graph client, entry point).
+- `tests/` is the test suite.
+- `grafana/` is the compose stack, the datasource config, and the three dashboard JSON files.
+- `launchd/` is the hourly schedule.
+- `docs/superpowers/specs/` is the original design document, if you want to know why things are the way they are.
