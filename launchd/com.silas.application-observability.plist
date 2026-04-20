@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.silas.application-observability</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/silas.spencer/application-observability/.venv/bin/python</string>
+        <string>-m</string>
+        <string>sync.sync</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/silas.spencer/application-observability</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>AAO_CLIENT_ID</key>
+        <string>REPLACE_WITH_YOUR_CLIENT_ID</string>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+
+    <key>StartInterval</key>
+    <integer>3600</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Users/silas.spencer/.application-observability/logs/launchd.out</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/silas.spencer/.application-observability/logs/launchd.err</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>
