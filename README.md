@@ -48,6 +48,12 @@ Run a one time backfill to load the last six months of mail into the database. R
 AAO_CLIENT_ID=<your-client-id> python -m sync.sync --backfill
 ```
 
+If your email is on a single tenant (most school and company accounts), also set the tenant id so Microsoft knows which directory to sign you into. Grab the tenant id from the Azure portal (Entra ID > Overview) or the Azure CLI (`az account show --query tenantId -o tsv`).
+
+```bash
+AAO_CLIENT_ID=<your-client-id> AAO_TENANT=<your-tenant-id> python -m sync.sync --backfill
+```
+
 On this first run, Microsoft will print a short code and a URL. Open the URL in any browser, sign in with your school email, and paste the code when asked. That happens once. After that the sync worker remembers who you are.
 
 When it finishes, you'll have a file at `~/.application-observability/jobs.db`. That is your history.

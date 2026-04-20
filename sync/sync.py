@@ -85,10 +85,12 @@ def main(argv: list[str] | None = None) -> int:
         log.error("AAO_CLIENT_ID environment variable is required")
         return 2
 
+    tenant = os.environ.get("AAO_TENANT", "common")
+
     db = Database(args.db_path)
     db.init_schema()
     classifier = Classifier.from_yaml(RULES_PATH)
-    client = GraphClient(client_id=client_id)
+    client = GraphClient(client_id=client_id, tenant=tenant)
 
     if args.backfill:
         since = (datetime.now(timezone.utc) - timedelta(days=183)).strftime("%Y-%m-%dT%H:%M:%SZ")
