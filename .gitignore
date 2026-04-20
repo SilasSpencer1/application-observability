@@ -20,5 +20,8 @@ venv/
 # Claude
 .claude/
 
+# Local-only planning docs
+plans/
+
 # Grafana persistent volume
 grafana/data/
