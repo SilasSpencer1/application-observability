@@ -1,5 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 import sys
 import logging
@@ -13,6 +14,22 @@ SCOPES = ["Mail.Read"]
 DEFAULT_TOKEN_PATH = Path.home() / ".application-observability" / "token.json"
 
 log = logging.getLogger(__name__)
+
+
+def normalize_iso_utc(raw: str) -> str:
+    """Convert any ISO-8601 timestamp Graph may emit to a stable UTC form.
+
+    Produces exactly: YYYY-MM-DDTHH:MM:SSZ (no fractional seconds, always Z).
+    """
+    s = raw
+    if s.endswith("Z"):
+        s = s[:-1] + "+00:00"
+    dt = datetime.fromisoformat(s)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    else:
+        dt = dt.astimezone(timezone.utc)
+    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 @dataclass
