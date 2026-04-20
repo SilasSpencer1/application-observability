@@ -50,3 +50,12 @@ def test_company_extraction(classifier, fixtures):
         assert classifier.extract_company(email) == fx["expected_company"], (
             f"{fx['id']} company mismatch"
         )
+
+def test_role_extraction(classifier, fixtures):
+    for fx in fixtures:
+        if fx["expected_role"] is None:
+            continue
+        email = email_from_fixture(fx)
+        assert classifier.extract_role(email) == fx["expected_role"], (
+            f"{fx['id']} role mismatch"
+        )

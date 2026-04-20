@@ -1,7 +1,14 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
+import re
 import yaml
+
+ROLE_PATTERNS = [
+    re.compile(r'"([^"]+)"'),                                                 # quoted phrase
+    re.compile(r"\bthe ([A-Z][\w \-/]+?) (?:role|position)"),                 # "...the X role/position..."
+    re.compile(r"received your application for (?:the )?([A-Z][\w \-/]+?)(?:\.|$| position)"),
+]
 
 @dataclass(frozen=True)
 class Email:
@@ -65,3 +72,11 @@ class Classifier:
             if host:
                 return host.capitalize()
         return "Unknown"
+
+    def extract_role(self, email: Email) -> str | None:
+        for source in (email.subject, email.body):
+            for pat in ROLE_PATTERNS:
+                m = pat.search(source)
+                if m:
+                    return m.group(1).strip()
+        return None
