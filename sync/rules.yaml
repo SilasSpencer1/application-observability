@@ -1,5 +1,4 @@
-# Patterns are case-insensitive substrings unless prefixed with `re:`.
-# A `re:` prefix marks the rest of the value as a Python regex.
+# Patterns are matched as case-insensitive substrings.
 
 job_filter:
   # Skip the email entirely unless subject or body contains one of these.

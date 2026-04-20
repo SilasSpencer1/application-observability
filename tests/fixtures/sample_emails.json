@@ -55,11 +55,33 @@
     "expected_role": "Backend Engineer"
   },
   {
+    "id": "msg-applied-role-terminator",
+    "subject": "We received your application for Data Engineer role",
+    "from_name": "DataCo Recruiting",
+    "from_address": "careers@dataco.io",
+    "body": "Hi Silas, we received your application for Data Engineer role. We will review and get back to you soon.",
+    "received_at": "2026-03-04T12:00:00Z",
+    "expected_status": "applied",
+    "expected_company": "DataCo",
+    "expected_role": "Data Engineer"
+  },
+  {
+    "id": "msg-newsletter-with-keyword",
+    "subject": "Weekly engineer newsletter: top 10 tools",
+    "from_name": "DevWeekly",
+    "from_address": "hello@devweekly.io",
+    "body": "This week's top tools for engineers include new frameworks and practices. Subscribe for more.",
+    "received_at": "2026-03-20T08:00:00Z",
+    "expected_status": null,
+    "expected_company": null,
+    "expected_role": null
+  },
+  {
     "id": "msg-noise-newsletter",
     "subject": "Weekly newsletter",
     "from_name": "Random News",
     "from_address": "news@randomnews.com",
-    "body": "This week's top stories include software trends and engineering best practices. Thanks for subscribing!",
+    "body": "This week's top stories cover product launches and industry trends. Thanks for subscribing!",
     "received_at": "2026-03-09T08:00:00Z",
     "expected_status": null,
     "expected_company": null,
@@ -70,7 +92,7 @@
     "subject": "Thank you for applying to our beta program",
     "from_name": "WidgetCo",
     "from_address": "info@widgetco.com",
-    "body": "Thanks for joining our beta program for our new product launch. No engineering required!",
+    "body": "Thanks for joining our beta program for our new product launch. No prior experience required!",
     "received_at": "2026-03-09T08:00:00Z",
     "expected_status": null,
     "expected_company": null,

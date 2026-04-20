@@ -1,0 +1,47 @@
+{
+  "title": "Applications: Funnel",
+  "uid": "aao-funnel",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5m",
+  "panels": [
+    {
+      "type": "bargauge",
+      "title": "Applied -> Next Step -> Offer",
+      "id": 1,
+      "gridPos": {"x": 0, "y": 0, "w": 16, "h": 10},
+      "options": {"orientation": "horizontal", "displayMode": "gradient"},
+      "datasource": {"type": "frser-sqlite-datasource", "uid": "jobs"},
+      "targets": [{
+        "refId": "A",
+        "queryType": "table",
+        "rawQueryText": "SELECT 'Applied' AS stage, COUNT(DISTINCT application_id) AS value FROM status_events WHERE status='applied' UNION ALL SELECT 'Next Step', COUNT(DISTINCT application_id) FROM status_events WHERE status='next_step' UNION ALL SELECT 'Offer', COUNT(DISTINCT application_id) FROM status_events WHERE status='offer'"
+      }]
+    },
+    {
+      "type": "stat",
+      "title": "Rejected (separate)",
+      "id": 2,
+      "gridPos": {"x": 16, "y": 0, "w": 8, "h": 5},
+      "datasource": {"type": "frser-sqlite-datasource", "uid": "jobs"},
+      "targets": [{
+        "refId": "A",
+        "queryType": "table",
+        "rawQueryText": "SELECT COUNT(*) AS value FROM applications WHERE current_status='rejected'"
+      }]
+    },
+    {
+      "type": "stat",
+      "title": "Applied -> Next Step Rate",
+      "id": 3,
+      "gridPos": {"x": 16, "y": 5, "w": 8, "h": 5},
+      "fieldConfig": {"defaults": {"unit": "percent"}},
+      "datasource": {"type": "frser-sqlite-datasource", "uid": "jobs"},
+      "targets": [{
+        "refId": "A",
+        "queryType": "table",
+        "rawQueryText": "SELECT 100.0 * (SELECT COUNT(DISTINCT application_id) FROM status_events WHERE status='next_step') / NULLIF((SELECT COUNT(DISTINCT application_id) FROM status_events WHERE status='applied'), 0) AS value"
+      }]
+    }
+  ]
+}

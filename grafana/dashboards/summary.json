@@ -1,0 +1,94 @@
+{
+  "title": "Applications: Summary",
+  "uid": "aao-summary",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5m",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Total Applications",
+      "id": 1,
+      "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+      "datasource": {"type": "frser-sqlite-datasource", "uid": "jobs"},
+      "targets": [{
+        "refId": "A",
+        "queryType": "table",
+        "rawQueryText": "SELECT COUNT(*) AS value FROM applications"
+      }]
+    },
+    {
+      "type": "stat",
+      "title": "Applied",
+      "id": 2,
+      "gridPos": {"x": 6, "y": 0, "w": 4, "h": 4},
+      "datasource": {"type": "frser-sqlite-datasource", "uid": "jobs"},
+      "targets": [{
+        "refId": "A",
+        "queryType": "table",
+        "rawQueryText": "SELECT COUNT(*) AS value FROM applications WHERE current_status='applied'"
+      }]
+    },
+    {
+      "type": "stat",
+      "title": "Next Step",
+      "id": 3,
+      "gridPos": {"x": 10, "y": 0, "w": 4, "h": 4},
+      "datasource": {"type": "frser-sqlite-datasource", "uid": "jobs"},
+      "targets": [{
+        "refId": "A",
+        "queryType": "table",
+        "rawQueryText": "SELECT COUNT(*) AS value FROM applications WHERE current_status='next_step'"
+      }]
+    },
+    {
+      "type": "stat",
+      "title": "Rejected",
+      "id": 4,
+      "gridPos": {"x": 14, "y": 0, "w": 4, "h": 4},
+      "datasource": {"type": "frser-sqlite-datasource", "uid": "jobs"},
+      "targets": [{
+        "refId": "A",
+        "queryType": "table",
+        "rawQueryText": "SELECT COUNT(*) AS value FROM applications WHERE current_status='rejected'"
+      }]
+    },
+    {
+      "type": "stat",
+      "title": "Offers",
+      "id": 5,
+      "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
+      "datasource": {"type": "frser-sqlite-datasource", "uid": "jobs"},
+      "targets": [{
+        "refId": "A",
+        "queryType": "table",
+        "rawQueryText": "SELECT COUNT(*) AS value FROM applications WHERE current_status='offer'"
+      }]
+    },
+    {
+      "type": "stat",
+      "title": "Response Rate",
+      "id": 6,
+      "gridPos": {"x": 0, "y": 4, "w": 6, "h": 4},
+      "fieldConfig": {"defaults": {"unit": "percent"}},
+      "datasource": {"type": "frser-sqlite-datasource", "uid": "jobs"},
+      "targets": [{
+        "refId": "A",
+        "queryType": "table",
+        "rawQueryText": "SELECT 100.0 * SUM(CASE WHEN current_status != 'applied' THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0) AS value FROM applications"
+      }]
+    },
+    {
+      "type": "table",
+      "title": "All Applications",
+      "id": 7,
+      "gridPos": {"x": 0, "y": 8, "w": 24, "h": 14},
+      "datasource": {"type": "frser-sqlite-datasource", "uid": "jobs"},
+      "targets": [{
+        "refId": "A",
+        "queryType": "table",
+        "rawQueryText": "SELECT company AS Company, role AS Role, current_status AS Status, applied_at AS Applied, status_updated_at AS LastUpdate FROM applications ORDER BY status_updated_at DESC"
+      }]
+    }
+  ]
+}
