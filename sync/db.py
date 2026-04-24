@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS applications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     company TEXT NOT NULL,
     role TEXT,
+    location TEXT,
     first_email_id TEXT NOT NULL,
     applied_at DATETIME NOT NULL,
     current_status TEXT NOT NULL CHECK (current_status IN ('applied','next_step','rejected','offer')),
@@ -49,6 +50,9 @@ class Database:
     def init_schema(self) -> None:
         with self.connect() as conn:
             conn.executescript(SCHEMA)
+            existing = {row["name"] for row in conn.execute("PRAGMA table_info(applications)")}
+            if "location" not in existing:
+                conn.execute("ALTER TABLE applications ADD COLUMN location TEXT")
 
     def record_event(
         self,
@@ -70,6 +74,7 @@ class Database:
 
             company_norm = classification.company or "Unknown"
             role_norm = classification.role
+            location_norm = classification.location
 
             app_row = conn.execute(
                 "SELECT id, current_status, status_updated_at FROM applications "
@@ -82,9 +87,9 @@ class Database:
                     return None
                 cur = conn.execute(
                     "INSERT INTO applications "
-                    "(company, role, first_email_id, applied_at, current_status, status_updated_at) "
-                    "VALUES (?, ?, ?, ?, 'applied', ?)",
-                    (company_norm, role_norm, message_id, occurred_at, occurred_at),
+                    "(company, role, location, first_email_id, applied_at, current_status, status_updated_at) "
+                    "VALUES (?, ?, ?, ?, ?, 'applied', ?)",
+                    (company_norm, role_norm, location_norm, message_id, occurred_at, occurred_at),
                 )
                 app_id = cur.lastrowid
             else:
@@ -93,6 +98,11 @@ class Database:
                     conn.execute(
                         "UPDATE applications SET current_status = ?, status_updated_at = ? WHERE id = ?",
                         (classification.status, occurred_at, app_id),
+                    )
+                if location_norm:
+                    conn.execute(
+                        "UPDATE applications SET location = COALESCE(location, ?) WHERE id = ?",
+                        (location_norm, app_id),
                     )
 
             conn.execute(

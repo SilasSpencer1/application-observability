@@ -56,8 +56,20 @@ def test_role_extraction(classifier, fixtures):
         if fx["expected_role"] is None:
             continue
         email = email_from_fixture(fx)
-        assert classifier.extract_role(email) == fx["expected_role"], (
-            f"{fx['id']} role mismatch"
+        # extract_role returns the raw captured role including any trailing
+        # location tail. The split happens in classify().
+        actual = classifier.extract_role(email)
+        expected = fx["expected_role"]
+        if fx.get("expected_location"):
+            expected = f"{expected}- {fx['expected_location']}"
+        assert actual == expected, f"{fx['id']} role mismatch: got {actual!r}"
+
+
+def test_location_extraction(classifier, fixtures):
+    for fx in fixtures:
+        email = email_from_fixture(fx)
+        assert classifier.extract_location(email) == fx.get("expected_location"), (
+            f"{fx['id']} location mismatch"
         )
 
 def test_extract_company_returns_unknown_for_ats_sender_without_display_name(classifier):
@@ -81,3 +93,4 @@ def test_classify_full_pipeline(classifier, fixtures):
             assert result.status == fx["expected_status"]
             assert result.company == fx["expected_company"]
             assert result.role == fx["expected_role"]
+            assert result.location == fx.get("expected_location")

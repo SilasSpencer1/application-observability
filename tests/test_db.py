@@ -23,10 +23,10 @@ def test_schema_is_idempotent(db):
     db.init_schema()  # second call should not raise
 
 
-def _record(db, message_id, status, company="Stripe", role="SWE", occurred_at="2026-03-01T10:00:00Z"):
+def _record(db, message_id, status, company="Stripe", role="SWE", location=None, occurred_at="2026-03-01T10:00:00Z"):
     return db.record_event(
         message_id=message_id,
-        classification=Classification(status=status, company=company, role=role),
+        classification=Classification(status=status, company=company, role=role, location=location),
         occurred_at=occurred_at,
     )
 
@@ -76,6 +76,60 @@ def test_last_event_at_returns_max(db):
     _record(db, "m1", "applied", occurred_at="2026-03-01T10:00:00Z")
     _record(db, "m2", "next_step", occurred_at="2026-03-08T10:00:00Z")
     assert db.last_event_at() == "2026-03-08T10:00:00Z"
+
+def test_location_is_stored_on_create(db):
+    db.init_schema()
+    _record(db, "m1", "applied", location="San Francisco HQ", occurred_at="2026-03-01T10:00:00Z")
+    with db.connect() as conn:
+        app = conn.execute("SELECT location FROM applications").fetchone()
+    assert app["location"] == "San Francisco HQ"
+
+
+def test_location_is_backfilled_on_later_event(db):
+    db.init_schema()
+    _record(db, "m1", "applied", location=None, occurred_at="2026-03-01T10:00:00Z")
+    _record(db, "m2", "next_step", location="NYC Office", occurred_at="2026-03-05T10:00:00Z")
+    with db.connect() as conn:
+        app = conn.execute("SELECT location FROM applications").fetchone()
+    assert app["location"] == "NYC Office"
+
+
+def test_location_does_not_overwrite_existing(db):
+    db.init_schema()
+    _record(db, "m1", "applied", location="San Francisco HQ", occurred_at="2026-03-01T10:00:00Z")
+    _record(db, "m2", "next_step", location="Remote", occurred_at="2026-03-05T10:00:00Z")
+    with db.connect() as conn:
+        app = conn.execute("SELECT location FROM applications").fetchone()
+    assert app["location"] == "San Francisco HQ"
+
+
+def test_schema_migration_adds_location_on_existing_db(tmp_path):
+    path = tmp_path / "pre_migration.db"
+    with sqlite3.connect(path) as conn:
+        conn.executescript(
+            """
+            CREATE TABLE applications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                company TEXT NOT NULL,
+                role TEXT,
+                first_email_id TEXT NOT NULL,
+                applied_at DATETIME NOT NULL,
+                current_status TEXT NOT NULL CHECK (current_status IN ('applied','next_step','rejected','offer')),
+                status_updated_at DATETIME NOT NULL
+            );
+            INSERT INTO applications (company, role, first_email_id, applied_at, current_status, status_updated_at)
+            VALUES ('Orb', 'SWE', 'm1', '2026-03-01T10:00:00Z', 'applied', '2026-03-01T10:00:00Z');
+            """
+        )
+    db = Database(path)
+    db.init_schema()
+    with db.connect() as conn:
+        cols = {row["name"] for row in conn.execute("PRAGMA table_info(applications)")}
+        app = conn.execute("SELECT company, role, location FROM applications").fetchone()
+    assert "location" in cols
+    assert app["company"] == "Orb"
+    assert app["location"] is None
+
 
 def test_older_event_does_not_clobber_newer_status(db):
     db.init_schema()
