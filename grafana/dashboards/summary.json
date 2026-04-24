@@ -14,7 +14,7 @@
       "targets": [{
         "refId": "A",
         "queryType": "table",
-        "rawQueryText": "SELECT COUNT(*) AS value FROM applications"
+        "queryText": "SELECT COUNT(*) AS value FROM applications"
       }]
     },
     {
@@ -26,7 +26,7 @@
       "targets": [{
         "refId": "A",
         "queryType": "table",
-        "rawQueryText": "SELECT COUNT(*) AS value FROM applications WHERE current_status='applied'"
+        "queryText": "SELECT COUNT(*) AS value FROM applications WHERE current_status='applied'"
       }]
     },
     {
@@ -38,7 +38,7 @@
       "targets": [{
         "refId": "A",
         "queryType": "table",
-        "rawQueryText": "SELECT COUNT(*) AS value FROM applications WHERE current_status='next_step'"
+        "queryText": "SELECT COUNT(*) AS value FROM applications WHERE current_status='next_step'"
       }]
     },
     {
@@ -50,7 +50,7 @@
       "targets": [{
         "refId": "A",
         "queryType": "table",
-        "rawQueryText": "SELECT COUNT(*) AS value FROM applications WHERE current_status='rejected'"
+        "queryText": "SELECT COUNT(*) AS value FROM applications WHERE current_status='rejected'"
       }]
     },
     {
@@ -62,7 +62,7 @@
       "targets": [{
         "refId": "A",
         "queryType": "table",
-        "rawQueryText": "SELECT COUNT(*) AS value FROM applications WHERE current_status='offer'"
+        "queryText": "SELECT COUNT(*) AS value FROM applications WHERE current_status='offer'"
       }]
     },
     {
@@ -75,7 +75,7 @@
       "targets": [{
         "refId": "A",
         "queryType": "table",
-        "rawQueryText": "SELECT 100.0 * SUM(CASE WHEN current_status != 'applied' THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0) AS value FROM applications"
+        "queryText": "SELECT 100.0 * SUM(CASE WHEN current_status != 'applied' THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0) AS value FROM applications"
       }]
     },
     {
@@ -87,7 +87,7 @@
       "targets": [{
         "refId": "A",
         "queryType": "table",
-        "rawQueryText": "SELECT company AS Company, role AS Role, current_status AS Status, applied_at AS Applied, status_updated_at AS LastUpdate FROM applications ORDER BY status_updated_at DESC"
+        "queryText": "SELECT company AS Company, role AS Role, current_status AS Status, applied_at AS Applied, status_updated_at AS LastUpdate FROM applications ORDER BY status_updated_at DESC"
       }]
     }
   ]
