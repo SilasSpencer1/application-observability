@@ -14,24 +14,20 @@
       "targets": [{
         "refId": "A",
         "queryType": "time series",
-        "queryText": "SELECT applied_at AS time, (SELECT COUNT(*) FROM applications a2 WHERE a2.applied_at <= a.applied_at) AS value FROM applications a ORDER BY applied_at"
+        "timeColumns": ["time"],
+        "queryText": "SELECT CAST(strftime('%s', applied_at) AS INTEGER) AS time, (SELECT COUNT(*) FROM applications a2 WHERE a2.applied_at <= a.applied_at) AS value FROM applications a ORDER BY applied_at"
       }]
     },
     {
       "type": "barchart",
-      "title": "Applications per Week (by current status)",
+      "title": "Applications per Week",
       "id": 2,
       "gridPos": {"x": 0, "y": 8, "w": 24, "h": 8},
       "datasource": {"type": "frser-sqlite-datasource", "uid": "jobs"},
-      "options": {"stacking": {"mode": "normal"}},
       "targets": [{
         "refId": "A",
         "queryType": "table",
-        "queryText": "SELECT strftime('%Y-W%W', applied_at) AS week, current_status AS status, COUNT(*) AS count FROM applications GROUP BY week, status ORDER BY week"
-      }],
-      "transformations": [{
-        "id": "groupingToMatrix",
-        "options": {"columnField": "status", "rowField": "week", "valueField": "count"}
+        "queryText": "SELECT strftime('%Y-W%W', applied_at) AS Week, COUNT(*) AS Applications FROM applications GROUP BY Week ORDER BY Week"
       }]
     },
     {
