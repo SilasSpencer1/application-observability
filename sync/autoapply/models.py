@@ -4,6 +4,22 @@ from pathlib import Path
 
 
 @dataclass(frozen=True)
+class Listing:
+    """A single job posting pulled from a listing source.
+
+    apply_url is the direct ATS link (Greenhouse / Ashby / Workday / etc.).
+    simplify_url, when present, is the branded simplify.jobs/p/<id> redirect
+    used by the Simplify extension fallback.
+    """
+    company: str
+    role: str
+    location: str | None
+    apply_url: str
+    simplify_url: str | None = None
+    source: str = "unknown"
+
+
+@dataclass(frozen=True)
 class Profile:
     """User data an ATS adapter fills into an application form.
 

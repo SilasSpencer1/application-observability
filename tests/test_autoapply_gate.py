@@ -84,6 +84,20 @@ def test_null_role_matches_only_null_role(db):
     assert AutoApplyGate(db).should_apply("Stripe", "SWE") is True
 
 
+def test_naive_iso_timestamp_in_db_is_treated_as_utc(db):
+    # Defensive case: if something writes a naive (tz-less) ISO string to the
+    # DB, the gate should still compare against an aware 'now' without
+    # TypeError, by coercing the parsed datetime to UTC.
+    with db.connect() as conn:
+        conn.execute(
+            "INSERT INTO applications "
+            "(company, role, first_email_id, applied_at, current_status, status_updated_at) "
+            "VALUES ('Stripe', 'SWE', 'seed', '2026-01-01T00:00:00', 'rejected', '2026-01-10T00:00:00')"
+        )
+    now = datetime(2026, 2, 1, tzinfo=timezone.utc)  # within cooldown
+    assert AutoApplyGate(db, now=now).should_apply("Stripe", "SWE") is False
+
+
 def test_rejection_then_later_applied_event_uses_latest_status(db):
     # An older rejection followed by a newer applied event means the
     # applications row is 'applied', so the rejected cooldown is irrelevant.
