@@ -66,6 +66,17 @@
     "expected_role": "Data Engineer"
   },
   {
+    "id": "msg-applied-apply-for-phrasing",
+    "subject": "Thank you for applying to Orb!",
+    "from_name": "Orb",
+    "from_address": "no-reply@ashbyhq.com",
+    "body": "Hi Silas,\n\nThank you for taking the time to apply for the Software Engineer, Core Product (Early Career)- San Francisco HQ here at Orb! We've received your application and will be in touch.",
+    "received_at": "2026-04-22T15:00:00Z",
+    "expected_status": "applied",
+    "expected_company": "Orb",
+    "expected_role": "Software Engineer, Core Product (Early Career)- San Francisco HQ"
+  },
+  {
     "id": "msg-newsletter-with-keyword",
     "subject": "Weekly engineer newsletter: top 10 tools",
     "from_name": "DevWeekly",
