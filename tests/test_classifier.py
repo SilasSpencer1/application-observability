@@ -71,6 +71,28 @@ def test_extract_company_returns_unknown_for_ats_sender_without_display_name(cla
     )
     assert classifier.extract_company(email) == "Unknown"
 
+
+@pytest.mark.parametrize("from_name,from_address,expected", [
+    ("Sift Talent Team", "no-reply@ashbyhq.com", "Sift"),
+    ("Crusoe Hiring Team", "no-reply@ashbyhq.com", "Crusoe"),
+    ("Nectar Hiring Team", "no-reply@ashbyhq.com", "Nectar"),
+    ("do-not-reply adobe", "adobe@myworkday.com", "Adobe"),
+    ("Recruiting Team at EliseAI", "no-reply@ashbyhq.com", "EliseAI"),
+    ("", "noreply@mail.amazon.jobs", "Amazon"),
+    ("", "careers@dataco.co.uk", "Dataco"),
+    ("nue.io", "hello@nue.io", "nue.io"),
+])
+def test_extract_company_cleans_prefixes_suffixes_and_subdomains(classifier, from_name, from_address, expected):
+    email = Email(
+        message_id="m",
+        subject="Thank you for applying",
+        from_name=from_name,
+        from_address=from_address,
+        body="thank you for applying",
+        received_at="2026-03-01T00:00:00Z",
+    )
+    assert classifier.extract_company(email) == expected
+
 def test_classify_full_pipeline(classifier, fixtures):
     for fx in fixtures:
         result = classifier.classify(email_from_fixture(fx))

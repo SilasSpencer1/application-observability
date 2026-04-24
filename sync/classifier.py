@@ -60,26 +60,51 @@ class Classifier:
                 return True
         return False
 
-    def _strip_company_suffixes(self, name: str) -> str:
-        result = name
+    def _strip_company_affixes(self, name: str) -> str:
+        """Strip both leading and trailing noise from a sender display name."""
+        result = name.strip()
+        for prefix in self._rules.get("company_prefix_strip", []):
+            lower_prefix = prefix.lower()
+            if result.lower().startswith(lower_prefix):
+                result = result[len(lower_prefix):]
         for suffix in self._rules["company_suffix_strip"]:
             lower_suffix = suffix.lower()
             if result.lower().endswith(lower_suffix):
                 result = result[: -len(lower_suffix)]
-        return result.strip(" -|·")
+        result = result.strip(" -|·,")
+        # Title-case a single lowercase word ("adobe" -> "Adobe") without
+        # touching brand names that include a dot ("nue.io") or that already
+        # use mixed case ("EliseAI").
+        if result and result == result.lower() and "." not in result:
+            result = result[0].upper() + result[1:]
+        return result
+
+    # Backwards-compatible alias retained so existing imports keep working.
+    _strip_company_suffixes = _strip_company_affixes
+
+    def _company_from_domain(self, address: str) -> str | None:
+        if "@" not in address:
+            return None
+        domain = address.split("@", 1)[1].lower()
+        generic = {s.lower() for s in self._rules.get("generic_subdomains", [])}
+        parts = [p for p in domain.split(".") if p and p not in generic]
+        if not parts:
+            return None
+        # Drop the TLD when the domain has more than one remaining piece.
+        if len(parts) > 1:
+            parts = parts[:-1]
+        return parts[0].capitalize()
 
     def extract_company(self, email: Email) -> str:
         if email.from_name:
-            cleaned = self._strip_company_suffixes(email.from_name)
+            cleaned = self._strip_company_affixes(email.from_name)
             if cleaned:
                 return cleaned
         if self._is_ats_sender(email.from_address):
             return "Unknown"
-        if "@" in email.from_address:
-            domain = email.from_address.split("@", 1)[1]
-            host = domain.split(".")[0]
-            if host:
-                return host.capitalize()
+        from_domain = self._company_from_domain(email.from_address)
+        if from_domain:
+            return from_domain
         return "Unknown"
 
     def extract_role(self, email: Email) -> str | None:

@@ -60,9 +60,44 @@ ats_senders:
 # Suffixes to strip when deriving a company name from a sender display name.
 company_suffix_strip:
   - "Recruiting"
-  - "Talent"
+  - "Recruiting Team"
   - "Talent Acquisition"
+  - "Talent Team"
+  - "Talent"
+  - "Hiring Team"
+  - "Hiring"
   - "Careers"
   - "People Team"
+  - "People"
+  - "HR"
   - "no-reply"
   - "noreply"
+
+# Prefixes to strip from a sender display name. Addresses like
+# "do-not-reply adobe" should yield "adobe" once the prefix is removed.
+company_prefix_strip:
+  - "do-not-reply"
+  - "do not reply"
+  - "no-reply"
+  - "noreply"
+  - "Recruiting Team at"
+  - "Hiring Team at"
+  - "Careers at"
+
+# Subdomains that are not the company name. Used to walk past "mail." or
+# "careers." when falling back to the email domain for the company.
+generic_subdomains:
+  - mail
+  - careers
+  - career
+  - hire
+  - hiring
+  - jobs
+  - apply
+  - app
+  - info
+  - hello
+  - no-reply
+  - noreply
+  - notifications
+  - notify
