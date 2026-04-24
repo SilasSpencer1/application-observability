@@ -15,7 +15,7 @@
       "targets": [{
         "refId": "A",
         "queryType": "table",
-        "rawQueryText": "SELECT 'Applied' AS stage, COUNT(DISTINCT application_id) AS value FROM status_events WHERE status='applied' UNION ALL SELECT 'Next Step', COUNT(DISTINCT application_id) FROM status_events WHERE status='next_step' UNION ALL SELECT 'Offer', COUNT(DISTINCT application_id) FROM status_events WHERE status='offer'"
+        "queryText": "SELECT 'Applied' AS stage, COUNT(DISTINCT application_id) AS value FROM status_events WHERE status='applied' UNION ALL SELECT 'Next Step', COUNT(DISTINCT application_id) FROM status_events WHERE status='next_step' UNION ALL SELECT 'Offer', COUNT(DISTINCT application_id) FROM status_events WHERE status='offer'"
       }]
     },
     {
@@ -27,7 +27,7 @@
       "targets": [{
         "refId": "A",
         "queryType": "table",
-        "rawQueryText": "SELECT COUNT(*) AS value FROM applications WHERE current_status='rejected'"
+        "queryText": "SELECT COUNT(*) AS value FROM applications WHERE current_status='rejected'"
       }]
     },
     {
@@ -40,7 +40,7 @@
       "targets": [{
         "refId": "A",
         "queryType": "table",
-        "rawQueryText": "SELECT 100.0 * (SELECT COUNT(DISTINCT application_id) FROM status_events WHERE status='next_step') / NULLIF((SELECT COUNT(DISTINCT application_id) FROM status_events WHERE status='applied'), 0) AS value"
+        "queryText": "SELECT 100.0 * (SELECT COUNT(DISTINCT application_id) FROM status_events WHERE status='next_step') / NULLIF((SELECT COUNT(DISTINCT application_id) FROM status_events WHERE status='applied'), 0) AS value"
       }]
     }
   ]

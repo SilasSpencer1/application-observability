@@ -14,7 +14,7 @@
       "targets": [{
         "refId": "A",
         "queryType": "time series",
-        "rawQueryText": "SELECT applied_at AS time, (SELECT COUNT(*) FROM applications a2 WHERE a2.applied_at <= a.applied_at) AS value FROM applications a ORDER BY applied_at"
+        "queryText": "SELECT applied_at AS time, (SELECT COUNT(*) FROM applications a2 WHERE a2.applied_at <= a.applied_at) AS value FROM applications a ORDER BY applied_at"
       }]
     },
     {
@@ -27,7 +27,7 @@
       "targets": [{
         "refId": "A",
         "queryType": "table",
-        "rawQueryText": "SELECT strftime('%Y-W%W', applied_at) AS week, current_status AS status, COUNT(*) AS count FROM applications GROUP BY week, status ORDER BY week"
+        "queryText": "SELECT strftime('%Y-W%W', applied_at) AS week, current_status AS status, COUNT(*) AS count FROM applications GROUP BY week, status ORDER BY week"
       }],
       "transformations": [{
         "id": "groupingToMatrix",
@@ -43,7 +43,7 @@
       "targets": [{
         "refId": "A",
         "queryType": "table",
-        "rawQueryText": "SELECT a.company AS Company, CAST((julianday(MIN(e2.occurred_at)) - julianday(a.applied_at)) AS INTEGER) AS Days FROM applications a JOIN status_events e2 ON e2.application_id = a.id AND e2.status != 'applied' GROUP BY a.id ORDER BY Days"
+        "queryText": "SELECT a.company AS Company, CAST((julianday(MIN(e2.occurred_at)) - julianday(a.applied_at)) AS INTEGER) AS Days FROM applications a JOIN status_events e2 ON e2.application_id = a.id AND e2.status != 'applied' GROUP BY a.id ORDER BY Days"
       }]
     }
   ]
