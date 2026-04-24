@@ -81,6 +81,8 @@ def test_extract_company_returns_unknown_for_ats_sender_without_display_name(cla
     ("", "noreply@mail.amazon.jobs", "Amazon"),
     ("", "careers@dataco.co.uk", "Dataco"),
     ("nue.io", "hello@nue.io", "nue.io"),
+    # Multi-suffix names collapse in one pass.
+    ("Valon Tech Hiring Team", "no-reply@ashbyhq.com", "Valon"),
 ])
 def test_extract_company_cleans_prefixes_suffixes_and_subdomains(classifier, from_name, from_address, expected):
     email = Email(
@@ -92,6 +94,52 @@ def test_extract_company_cleans_prefixes_suffixes_and_subdomains(classifier, fro
         received_at="2026-03-01T00:00:00Z",
     )
     assert classifier.extract_company(email) == expected
+
+
+@pytest.mark.parametrize("subject,body,expected_status", [
+    # Real wording that used to mislabel applied emails as next_step because of
+    # phrases like "discuss next steps" in future-tense boilerplate.
+    (
+        "Thank you for applying to Nectar Social!",
+        "Thank you for your interest in the Software Engineer, Early Career role at Nectar Social. "
+        "Your application has been received. If your background aligns, we'll reach out to discuss next steps.",
+        "applied",
+    ),
+    # Rejection that contained "no longer interviewing" and used to be read as
+    # next_step because "interview" appeared as a substring.
+    (
+        "Thank You for applying to Sift",
+        "Thank you for taking the time to apply for the Software Engineer role at Sift. "
+        "Unfortunately we have filled this role and are no longer interviewing.",
+        "rejected",
+    ),
+    # Rejection that used smart quotes ("we’ve decided"). The classifier
+    # should collapse typographic punctuation before matching.
+    (
+        "Application Update",
+        "Thank you for expressing interest in the role at Maybern. We’ve decided to move forward with other applicants.",
+        "rejected",
+    ),
+    # Short confirmation email that never names an engineering role. The old
+    # filter rejected these outright; the new "apply to" keyword lets them in.
+    (
+        "Thank you for applying to Loop",
+        "Thanks for applying to Loop. Your application has been received and we will review it right away.",
+        "applied",
+    ),
+])
+def test_real_email_phrasings_classify_correctly(classifier, subject, body, expected_status):
+    email = Email(
+        message_id="m",
+        subject=subject,
+        from_name="",
+        from_address="noreply@example.com",
+        body=body,
+        received_at="2026-03-01T00:00:00Z",
+    )
+    result = classifier.classify(email)
+    assert result is not None, "email unexpectedly skipped by job filter"
+    assert result.status == expected_status
 
 def test_classify_full_pipeline(classifier, fixtures):
     for fx in fixtures:

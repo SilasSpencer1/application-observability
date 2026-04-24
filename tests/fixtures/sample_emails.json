@@ -100,10 +100,10 @@
   },
   {
     "id": "msg-noise-marketing",
-    "subject": "Thank you for applying to our beta program",
+    "subject": "You are on the waitlist for our beta program",
     "from_name": "WidgetCo",
     "from_address": "info@widgetco.com",
-    "body": "Thanks for joining our beta program for our new product launch. No prior experience required!",
+    "body": "Thanks for joining the waitlist for our new product launch. No prior experience required!",
     "received_at": "2026-03-09T08:00:00Z",
     "expected_status": null,
     "expected_company": null,
