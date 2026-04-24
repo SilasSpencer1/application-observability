@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head><title>Sample Ashby Application</title></head>
+<body>
+<div id="form-root">
+<form id="ashby_application_form" onsubmit="
+  document.getElementById('form-root').innerHTML =
+    '<div class=\'ashby-application-submitted\'>Thanks for applying. Your application has been received.</div>';
+  return false;
+">
+  <label for="ashby_name">Name *</label>
+  <input id="ashby_name" name="name" required>
+
+  <label for="ashby_email">Email *</label>
+  <input id="ashby_email" name="email" type="email" required>
+
+  <label for="ashby_phone">Phone</label>
+  <input id="ashby_phone" name="phone" type="tel">
+
+  <label for="ashby_resume">Resume *</label>
+  <input id="ashby_resume" name="resume" type="file" required>
+
+  <label for="ashby_linkedin">LinkedIn *</label>
+  <input id="ashby_linkedin" name="linkedin" required>
+
+  <label for="ashby_github">GitHub</label>
+  <input id="ashby_github" name="github">
+
+  <label for="ashby_portfolio">Personal Website</label>
+  <input id="ashby_portfolio" name="portfolio">
+
+  <button type="submit">Submit Application</button>
+</form>
+</div>
+</body>
+</html>
