@@ -39,7 +39,12 @@ def load_profile(path: Path | None = None) -> Profile:
     if not isinstance(data, dict):
         raise ValueError(f"profile YAML must be a mapping, got {type(data).__name__}")
 
-    missing = [f for f in _REQUIRED_FIELDS if f not in data or data[f] is None]
+    missing = [
+        f for f in _REQUIRED_FIELDS
+        if f not in data
+        or data[f] is None
+        or (isinstance(data[f], str) and not data[f].strip())
+    ]
     if missing:
         raise ValueError(f"profile.yaml missing required field(s): {', '.join(missing)}")
 
