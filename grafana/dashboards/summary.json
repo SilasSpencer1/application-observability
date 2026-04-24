@@ -341,6 +341,73 @@
       ]
     },
     {
+      "type": "barchart",
+      "title": "Applications by Location",
+      "id": 8,
+      "gridPos": {
+        "x": 6,
+        "y": 4,
+        "w": 18,
+        "h": 4
+      },
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jobs"
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0,
+        "showValue": "auto",
+        "stacking": "none",
+        "groupWidth": 0.7,
+        "barWidth": 0.97,
+        "barRadius": 0,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false,
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "axisPlacement": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "table",
+          "queryText": "SELECT COALESCE(location, 'Unknown') AS Location, COUNT(*) AS Applications FROM applications GROUP BY Location ORDER BY Applications DESC",
+          "rawQueryText": "SELECT COALESCE(location, 'Unknown') AS Location, COUNT(*) AS Applications FROM applications GROUP BY Location ORDER BY Applications DESC"
+        }
+      ]
+    },
+    {
       "type": "table",
       "title": "All Applications",
       "id": 7,
@@ -391,8 +458,8 @@
         {
           "refId": "A",
           "queryType": "table",
-          "queryText": "SELECT company AS Company, role AS Role, current_status AS Status, applied_at AS Applied, status_updated_at AS LastUpdate FROM applications ORDER BY status_updated_at DESC",
-          "rawQueryText": "SELECT company AS Company, role AS Role, current_status AS Status, applied_at AS Applied, status_updated_at AS LastUpdate FROM applications ORDER BY status_updated_at DESC"
+          "queryText": "SELECT company AS Company, role AS Role, location AS Location, current_status AS Status, applied_at AS Applied, status_updated_at AS LastUpdate FROM applications ORDER BY status_updated_at DESC",
+          "rawQueryText": "SELECT company AS Company, role AS Role, location AS Location, current_status AS Status, applied_at AS Applied, status_updated_at AS LastUpdate FROM applications ORDER BY status_updated_at DESC"
         }
       ]
     }
