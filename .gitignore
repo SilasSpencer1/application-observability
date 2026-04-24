@@ -30,3 +30,6 @@ plans/
 
 # Grafana persistent volume
 grafana/data/
+
+# Personal email exports used for testing imports
+esl_files/

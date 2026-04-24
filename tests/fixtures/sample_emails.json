@@ -8,7 +8,8 @@
     "received_at": "2026-03-01T15:00:00Z",
     "expected_status": "applied",
     "expected_company": "Stripe",
-    "expected_role": "Software Engineer"
+    "expected_role": "Software Engineer",
+    "expected_location": null
   },
   {
     "id": "msg-applied-generic",
@@ -19,7 +20,8 @@
     "received_at": "2026-03-02T10:00:00Z",
     "expected_status": "applied",
     "expected_company": "Acme",
-    "expected_role": "Backend Engineer"
+    "expected_role": "Backend Engineer",
+    "expected_location": null
   },
   {
     "id": "msg-rejected-1",
@@ -30,7 +32,8 @@
     "received_at": "2026-03-10T15:00:00Z",
     "expected_status": "rejected",
     "expected_company": "Stripe",
-    "expected_role": "Software Engineer"
+    "expected_role": "Software Engineer",
+    "expected_location": null
   },
   {
     "id": "msg-next-step",
@@ -41,7 +44,8 @@
     "received_at": "2026-03-08T10:00:00Z",
     "expected_status": "next_step",
     "expected_company": "Acme",
-    "expected_role": "Backend Engineer"
+    "expected_role": "Backend Engineer",
+    "expected_location": null
   },
   {
     "id": "msg-offer",
@@ -52,7 +56,8 @@
     "received_at": "2026-03-15T10:00:00Z",
     "expected_status": "offer",
     "expected_company": "Acme",
-    "expected_role": "Backend Engineer"
+    "expected_role": "Backend Engineer",
+    "expected_location": null
   },
   {
     "id": "msg-applied-role-terminator",
@@ -63,7 +68,8 @@
     "received_at": "2026-03-04T12:00:00Z",
     "expected_status": "applied",
     "expected_company": "DataCo",
-    "expected_role": "Data Engineer"
+    "expected_role": "Data Engineer",
+    "expected_location": null
   },
   {
     "id": "msg-applied-apply-for-phrasing",
@@ -74,7 +80,8 @@
     "received_at": "2026-04-22T15:00:00Z",
     "expected_status": "applied",
     "expected_company": "Orb",
-    "expected_role": "Software Engineer, Core Product (Early Career)- San Francisco HQ"
+    "expected_role": "Software Engineer, Core Product (Early Career)",
+    "expected_location": "San Francisco HQ"
   },
   {
     "id": "msg-newsletter-with-keyword",
@@ -85,7 +92,8 @@
     "received_at": "2026-03-20T08:00:00Z",
     "expected_status": null,
     "expected_company": null,
-    "expected_role": null
+    "expected_role": null,
+    "expected_location": null
   },
   {
     "id": "msg-noise-newsletter",
@@ -96,17 +104,19 @@
     "received_at": "2026-03-09T08:00:00Z",
     "expected_status": null,
     "expected_company": null,
-    "expected_role": null
+    "expected_role": null,
+    "expected_location": null
   },
   {
     "id": "msg-noise-marketing",
-    "subject": "Thank you for applying to our beta program",
+    "subject": "You are on the waitlist for our beta program",
     "from_name": "WidgetCo",
     "from_address": "info@widgetco.com",
-    "body": "Thanks for joining our beta program for our new product launch. No prior experience required!",
+    "body": "Thanks for joining the waitlist for our new product launch. No prior experience required!",
     "received_at": "2026-03-09T08:00:00Z",
     "expected_status": null,
     "expected_company": null,
-    "expected_role": null
+    "expected_role": null,
+    "expected_location": null
   }
 ]

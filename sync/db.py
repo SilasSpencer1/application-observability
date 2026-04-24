@@ -10,8 +10,9 @@ CREATE TABLE IF NOT EXISTS applications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     company TEXT NOT NULL,
     role TEXT,
+    location TEXT,
     first_email_id TEXT NOT NULL,
-    applied_at DATETIME NOT NULL,
+    applied_at DATETIME,
     current_status TEXT NOT NULL CHECK (current_status IN ('applied','next_step','rejected','offer')),
     status_updated_at DATETIME NOT NULL
 );
@@ -31,6 +32,7 @@ CREATE INDEX IF NOT EXISTS idx_status_events_app
     ON status_events(application_id, occurred_at);
 """
 
+
 class Database:
     def __init__(self, path: Path):
         self.path = Path(path)
@@ -49,17 +51,61 @@ class Database:
     def init_schema(self) -> None:
         with self.connect() as conn:
             conn.executescript(SCHEMA)
+            self._migrate(conn)
+
+    def _migrate(self, conn) -> None:
+        cols = list(conn.execute("PRAGMA table_info(applications)"))
+        by_name = {row["name"]: row for row in cols}
+        if "location" not in by_name:
+            conn.execute("ALTER TABLE applications ADD COLUMN location TEXT")
+        # SQLite cannot relax a NOT NULL column in place; rebuild when needed.
+        if by_name.get("applied_at") and by_name["applied_at"]["notnull"] == 1:
+            # Foreign keys must be off during the rebuild so dropping the old
+            # applications table does not trip the status_events FK.
+            conn.execute("PRAGMA foreign_keys = OFF")
+            try:
+                conn.executescript(
+                    """
+                    CREATE TABLE applications_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        company TEXT NOT NULL,
+                        role TEXT,
+                        location TEXT,
+                        first_email_id TEXT NOT NULL,
+                        applied_at DATETIME,
+                        current_status TEXT NOT NULL CHECK (current_status IN ('applied','next_step','rejected','offer')),
+                        status_updated_at DATETIME NOT NULL
+                    );
+                    INSERT INTO applications_new
+                        (id, company, role, location, first_email_id, applied_at, current_status, status_updated_at)
+                        SELECT id, company, role, location, first_email_id, applied_at, current_status, status_updated_at
+                        FROM applications;
+                    DROP TABLE applications;
+                    ALTER TABLE applications_new RENAME TO applications;
+                    CREATE UNIQUE INDEX IF NOT EXISTS idx_applications_company_role
+                        ON applications(company, COALESCE(role, ''));
+                    """
+                )
+            finally:
+                conn.execute("PRAGMA foreign_keys = ON")
 
     def record_event(
         self,
         message_id: str,
         classification: Classification,
         occurred_at: str,
+        allow_unknown_applied_at: bool = False,
     ) -> int | None:
         """Insert a status event and update or create the parent application.
 
         Returns the application_id touched, or None if the event was skipped.
         Idempotent: a duplicate message_id is a no-op.
+
+        When `allow_unknown_applied_at` is True, a decision event (rejected,
+        next step, offer) for a company+role we have never seen still creates
+        an application row with a null `applied_at`. This is the path the
+        manual CLI and the eml importer use, since the user can be sure the
+        application happened even if we don't have the confirmation email.
         """
         with self.connect() as conn:
             existing = conn.execute(
@@ -70,21 +116,32 @@ class Database:
 
             company_norm = classification.company or "Unknown"
             role_norm = classification.role
+            location_norm = classification.location
 
             app_row = conn.execute(
-                "SELECT id, current_status, status_updated_at FROM applications "
+                "SELECT id, current_status, status_updated_at, applied_at FROM applications "
                 "WHERE company = ? AND COALESCE(role, '') = COALESCE(?, '')",
                 (company_norm, role_norm),
             ).fetchone()
 
             if app_row is None:
-                if classification.status != "applied":
+                is_applied = classification.status == "applied"
+                if not is_applied and not allow_unknown_applied_at:
                     return None
+                new_applied_at = occurred_at if is_applied else None
                 cur = conn.execute(
                     "INSERT INTO applications "
-                    "(company, role, first_email_id, applied_at, current_status, status_updated_at) "
-                    "VALUES (?, ?, ?, ?, 'applied', ?)",
-                    (company_norm, role_norm, message_id, occurred_at, occurred_at),
+                    "(company, role, location, first_email_id, applied_at, current_status, status_updated_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        company_norm,
+                        role_norm,
+                        location_norm,
+                        message_id,
+                        new_applied_at,
+                        classification.status,
+                        occurred_at,
+                    ),
                 )
                 app_id = cur.lastrowid
             else:
@@ -93,6 +150,16 @@ class Database:
                     conn.execute(
                         "UPDATE applications SET current_status = ?, status_updated_at = ? WHERE id = ?",
                         (classification.status, occurred_at, app_id),
+                    )
+                if classification.status == "applied" and app_row["applied_at"] is None:
+                    conn.execute(
+                        "UPDATE applications SET applied_at = ?, first_email_id = ? WHERE id = ?",
+                        (occurred_at, message_id, app_id),
+                    )
+                if location_norm:
+                    conn.execute(
+                        "UPDATE applications SET location = COALESCE(location, ?) WHERE id = ?",
+                        (location_norm, app_id),
                     )
 
             conn.execute(
