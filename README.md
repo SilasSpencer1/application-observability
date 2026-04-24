@@ -6,7 +6,7 @@ Keep track of where every job you applied to actually stands. Not in a spreadshe
 
 Every job application generates a paper trail in your email. A "thanks for applying" here, a "we'd love to chat" there, the occasional rejection, and if you are lucky an offer. It all arrives, and then it all disappears into the pile.
 
-This project quietly reads that pile for you. Once an hour it pulls new messages from your Outlook mailbox, figures out which ones are job related, and tags each one as applied, next step, rejected, or offer. The results land in a local database. Grafana draws three dashboards on top:
+This project quietly reads that pile for you. Once an hour it pulls new messages from your mailbox, figures out which ones are job related, and tags each one as applied, next step, rejected, or offer. The results land in a local database. Grafana draws three dashboards on top:
 
 - A summary view, for the question "where does everything stand right now"
 - A time series view, for the question "am I sending more than I used to, and what's coming back"
@@ -14,23 +14,32 @@ This project quietly reads that pile for you. Once an hour it pulls new messages
 
 Everything runs on your Mac. None of your mail ever leaves it.
 
-## Setting it up
+## Pick your mail provider
 
-This takes about fifteen minutes the first time. Most of it is waiting for things to install or clicking through a Microsoft sign in page.
+The project reads mail from one of two providers. Gmail is the default and easiest to set up. Outlook works too, but most school and work Microsoft tenants require admin approval before an app can read mail, which can take a while.
 
-### Tell Microsoft this project can read your mail
+| Provider | Env variable | Who it's for |
+| --- | --- | --- |
+| `gmail` | `AAO_PROVIDER=gmail` (default) | Personal Gmail accounts |
+| `graph` | `AAO_PROVIDER=graph` | Outlook / Microsoft 365 |
 
-The sync worker signs in to your Outlook mailbox the same way any other Microsoft app would. You need to register the project once so it has an identity to sign in as.
+If you never set `AAO_PROVIDER`, the sync worker uses Gmail.
 
-1. Open the [Azure portal](https://portal.azure.com) and search for **App registrations**.
-2. Click **New registration**. Name it anything you want. `application-observability` is fine. Leave the default account type.
-3. After it's created, go to **Authentication** in the side menu. Click **Add a platform**, pick **Mobile and desktop applications**, and check the box next to `https://login.microsoftonline.com/common/oauth2/nativeclient`. Scroll down and turn on **Allow public client flows**. Save.
-4. Go to **API permissions**, click **Add a permission**, choose **Microsoft Graph**, then **Delegated permissions**. Find `Mail.Read`, check it, and add it.
-5. On the app's overview page, copy the **Application (client) ID**. That's the value you'll use below.
+## Setting it up with Gmail
+
+Budget about ten minutes the first time.
+
+### Turn on the Gmail API in Google Cloud
+
+The sync worker needs a small OAuth credential so Google knows which app is asking to read mail.
+
+1. Open [console.cloud.google.com](https://console.cloud.google.com) and sign in with the Gmail account you want to track.
+2. Create a new project. Call it anything, `application-observability` is fine.
+3. Use the search bar to find **Gmail API** and enable it.
+4. Go to **APIs & Services → OAuth consent screen**. Pick **External**, fill in the app name, your email as support and developer contact. On the scopes page click **Save and continue**. On the test users page, add your own Gmail address so Google lets you through the unpublished-app warning.
+5. Go to **APIs & Services → Credentials**, click **Create credentials → OAuth client ID**, pick **Desktop app**, and name it. Click **Download JSON** and save the file somewhere on your machine.
 
 ### Install the Python pieces
-
-From the project directory:
 
 ```bash
 python3.11 -m venv .venv
@@ -38,48 +47,52 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
-That creates a local virtual environment and pulls in the handful of libraries the sync worker needs.
-
 ### Pull your history
 
-Run a one time backfill to load the last six months of mail into the database. Replace the placeholder with the client id you copied a minute ago.
+Point the sync worker at the JSON file you downloaded and run a backfill:
 
 ```bash
-AAO_CLIENT_ID=<your-client-id> python -m sync.sync --backfill
+AAO_GOOGLE_CREDENTIALS=/path/to/your/client_secret.json python -m sync.sync --backfill
 ```
 
-If your email is on a single tenant (most school and company accounts), also set the tenant id so Microsoft knows which directory to sign you into. Grab the tenant id from the Azure portal (Entra ID > Overview) or the Azure CLI (`az account show --query tenantId -o tsv`).
+On the first run a browser window opens and asks you to grant the app permission to read your mail. Click through. Google caches the refresh token at `~/.application-observability/gmail_token.json` so you never see the prompt again.
 
-```bash
-AAO_CLIENT_ID=<your-client-id> AAO_TENANT=<your-tenant-id> python -m sync.sync --backfill
-```
+When it finishes you'll have a database at `~/.application-observability/jobs.db`.
 
-On this first run, Microsoft will print a short code and a URL. Open the URL in any browser, sign in with your school email, and paste the code when asked. That happens once. After that the sync worker remembers who you are.
+## Setting it up with Outlook
 
-When it finishes, you'll have a file at `~/.application-observability/jobs.db`. That is your history.
+Only use this path if you want to pull from an Outlook or Microsoft 365 mailbox. Most school tenants require admin approval, so expect some back and forth with IT.
 
-### Keep it running
+1. Register an app in the [Azure portal](https://portal.azure.com) under **App registrations**. On the **Authentication** tab add a mobile/desktop platform with the `https://login.microsoftonline.com/common/oauth2/nativeclient` redirect, and turn on **Allow public client flows**. On the **API permissions** tab add the `Mail.Read` delegated permission on Microsoft Graph.
+2. Copy the Application (client) ID. For single-tenant accounts, also grab the tenant id from **Entra ID → Overview**.
+3. Install Python deps (same commands as above).
+4. Run a backfill:
+   ```bash
+   AAO_PROVIDER=graph AAO_CLIENT_ID=<your-client-id> AAO_TENANT=<your-tenant-id> python -m sync.sync --backfill
+   ```
+   On the first run Microsoft prints a short code and a URL. Open it in any browser, sign in, paste the code.
 
-The sync worker should run on its own from now on, once an hour. macOS does this with something called launchd. There's a small config file in the `launchd/` folder. A couple of steps to install it:
+## Keep it running
 
-1. Open `launchd/com.silas.application-observability.plist` and replace `REPLACE_WITH_YOUR_CLIENT_ID` with the real client id.
-2. Create the folder where logs will live:
+The sync worker should run on its own, once an hour. macOS does this with launchd. Install the schedule:
+
+1. Open `launchd/com.silas.application-observability.plist` and fill in the credentials path. It ships set up for Gmail (`AAO_PROVIDER=gmail` and `AAO_GOOGLE_CREDENTIALS`). If you're using Outlook, swap those for `AAO_PROVIDER=graph`, `AAO_CLIENT_ID`, and `AAO_TENANT`.
+2. Create the log folder:
    ```bash
    mkdir -p ~/.application-observability/logs
    ```
-3. Install and activate the schedule:
+3. Install and activate:
    ```bash
    cp launchd/com.silas.application-observability.plist ~/Library/LaunchAgents/
    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.silas.application-observability.plist
    ```
 
-The next run will happen within the hour. If you want to see it work right away, kick it off manually:
-
+Trigger a run right now instead of waiting an hour:
 ```bash
 launchctl kickstart gui/$(id -u)/com.silas.application-observability
 ```
 
-### Start the dashboards
+## Start the dashboards
 
 ```bash
 docker compose up -d
@@ -91,11 +104,9 @@ Open [http://localhost:3000](http://localhost:3000). No username, no password, t
 
 You shouldn't need to do anything. Every hour the worker wakes up, fetches anything new, classifies it, and the charts pick it up on their next refresh.
 
-A few small things worth knowing:
+**Logs live at `~/.application-observability/logs/sync.log`.** They rotate weekly. Useful if something looks off.
 
-**Logs live at `~/.application-observability/logs/sync.log`.** They rotate weekly, so they never balloon. Useful if something looks off.
-
-**The classifier is driven by a plain text file.** Open `sync/rules.yaml` and you'll see the phrases it looks for. If you spot an email it should have caught but didn't, add a phrase. No code changes.
+**The classifier is driven by a plain text file.** Open `sync/rules.yaml` and you'll see the phrases it looks for. If an email got missed, add a phrase.
 
 **To run a sync without waiting for the hourly tick:**
 ```bash
@@ -109,24 +120,31 @@ Check whether the database has anything in it:
 ```bash
 sqlite3 ~/.application-observability/jobs.db 'SELECT COUNT(*) FROM applications'
 ```
-If that is zero, the sync worker hasn't recorded anything yet. Open the log and see what it's doing.
+If that is zero, the sync worker hasn't recorded anything yet. Open the log.
 
 **An email you remember clearly is not showing up.**
-The classifier's vocabulary is modest by design. Open `sync/rules.yaml`, add the phrase from the missing email, save, and trigger a sync. It'll pick it up the next time around.
+The classifier's vocabulary is modest by design. Open `sync/rules.yaml`, add the phrase from the missing email, save, and trigger a sync.
 
-**Microsoft keeps asking you to sign in.**
-The token cache might have gotten wiped. Delete it and run the backfill once more to get a fresh one:
+**Sign in keeps coming back.**
+The token cache may have expired or been wiped. Delete it and run the backfill once more.
+
+Gmail:
+```bash
+rm ~/.application-observability/gmail_token.json
+AAO_GOOGLE_CREDENTIALS=/path/to/client_secret.json python -m sync.sync --backfill
+```
+
+Outlook:
 ```bash
 rm ~/.application-observability/token.json
-AAO_CLIENT_ID=<your-client-id> python -m sync.sync --backfill
+AAO_PROVIDER=graph AAO_CLIENT_ID=<id> AAO_TENANT=<tenant> python -m sync.sync --backfill
 ```
 
 **The hourly schedule seems quiet.**
-Ask macOS what it thinks of the job:
 ```bash
 launchctl print gui/$(id -u)/com.silas.application-observability
 ```
-The output includes the last exit status and anything launchd itself logged.
+The output includes the last exit status and anything launchd logged.
 
 ## Tests
 
@@ -136,7 +154,7 @@ pytest
 
 ## How the project is laid out
 
-- `sync/` is the Python package. One file per job (classifier, database, Graph client, entry point).
+- `sync/` is the Python package. One file per job: classifier, database, Gmail client, Graph client, entry point.
 - `tests/` is the test suite.
 - `grafana/` is the compose stack, the datasource config, and the three dashboard JSON files.
 - `launchd/` is the hourly schedule.

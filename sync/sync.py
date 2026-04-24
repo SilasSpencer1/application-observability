@@ -8,12 +8,12 @@ from pathlib import Path
 
 from sync.classifier import Classifier, Email
 from sync.db import Database
-from sync.graph_client import GraphClient
 
 DEFAULT_HOME = Path.home() / ".application-observability"
 DEFAULT_DB_PATH = DEFAULT_HOME / "jobs.db"
 DEFAULT_LOG_DIR = DEFAULT_HOME / "logs"
 RULES_PATH = Path(__file__).parent / "rules.yaml"
+DEFAULT_PROVIDER = "gmail"
 
 log = logging.getLogger("sync")
 
@@ -33,7 +33,8 @@ def configure_logging(log_dir: Path) -> None:
     root.addHandler(stream)
 
 
-def _email_from_graph(msg) -> Email:
+def _to_email(msg) -> Email:
+    """Convert a provider-specific message dataclass into our canonical Email."""
     return Email(
         message_id=msg.message_id,
         subject=msg.subject,
@@ -44,12 +45,35 @@ def _email_from_graph(msg) -> Email:
     )
 
 
+def build_client(provider: str):
+    """Construct the configured mail provider client from environment variables."""
+    provider = provider.lower()
+    if provider == "gmail":
+        from sync.gmail_client import GmailClient
+
+        credentials_path = os.environ.get("AAO_GOOGLE_CREDENTIALS")
+        if not credentials_path:
+            raise RuntimeError(
+                "AAO_GOOGLE_CREDENTIALS must point to a Google OAuth client JSON file"
+            )
+        return GmailClient(credentials_path=Path(credentials_path))
+    if provider == "graph":
+        from sync.graph_client import GraphClient
+
+        client_id = os.environ.get("AAO_CLIENT_ID")
+        if not client_id:
+            raise RuntimeError("AAO_CLIENT_ID is required when AAO_PROVIDER=graph")
+        tenant = os.environ.get("AAO_TENANT", "common")
+        return GraphClient(client_id=client_id, tenant=tenant)
+    raise RuntimeError(f"Unknown AAO_PROVIDER: {provider!r} (expected 'gmail' or 'graph')")
+
+
 def run_sync(client, classifier: Classifier, db: Database, since_iso: str | None) -> dict:
     """Pull messages, classify each, persist results. Pure function given the inputs."""
     counts = {"seen": 0, "classified": 0, "skipped": 0, "recorded": 0, "duplicates": 0}
     for msg in client.fetch_messages_since(since_iso):
         counts["seen"] += 1
-        email = _email_from_graph(msg)
+        email = _to_email(msg)
         result = classifier.classify(email)
         if result is None:
             counts["skipped"] += 1
@@ -80,17 +104,19 @@ def main(argv: list[str] | None = None) -> int:
 
     configure_logging(args.log_dir)
 
-    client_id = os.environ.get("AAO_CLIENT_ID")
-    if not client_id:
-        log.error("AAO_CLIENT_ID environment variable is required")
+    provider = os.environ.get("AAO_PROVIDER", DEFAULT_PROVIDER)
+
+    try:
+        client = build_client(provider)
+    except RuntimeError as err:
+        log.error("%s", err)
         return 2
 
-    tenant = os.environ.get("AAO_TENANT", "common")
+    log.info("Using mail provider: %s", provider)
 
     db = Database(args.db_path)
     db.init_schema()
     classifier = Classifier.from_yaml(RULES_PATH)
-    client = GraphClient(client_id=client_id, tenant=tenant)
 
     if args.backfill:
         since = (datetime.now(timezone.utc) - timedelta(days=183)).strftime("%Y-%m-%dT%H:%M:%SZ")

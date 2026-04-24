@@ -17,8 +17,10 @@
 
     <key>EnvironmentVariables</key>
     <dict>
-        <key>AAO_CLIENT_ID</key>
-        <string>REPLACE_WITH_YOUR_CLIENT_ID</string>
+        <key>AAO_PROVIDER</key>
+        <string>gmail</string>
+        <key>AAO_GOOGLE_CREDENTIALS</key>
+        <string>REPLACE_WITH_PATH_TO_GOOGLE_CREDENTIALS_JSON</string>
         <key>PATH</key>
         <string>/usr/local/bin:/usr/bin:/bin</string>
     </dict>
