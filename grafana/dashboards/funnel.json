@@ -2,46 +2,179 @@
   "title": "Applications: Funnel",
   "uid": "aao-funnel",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "5m",
+  "time": {
+    "from": "now-90d",
+    "to": "now"
+  },
   "panels": [
     {
       "type": "bargauge",
       "title": "Applied -> Next Step -> Offer",
       "id": 1,
-      "gridPos": {"x": 0, "y": 0, "w": 16, "h": 10},
-      "options": {"orientation": "horizontal", "displayMode": "gradient"},
-      "datasource": {"type": "frser-sqlite-datasource", "uid": "jobs"},
-      "targets": [{
-        "refId": "A",
-        "queryType": "table",
-        "queryText": "SELECT 'Applied' AS stage, COUNT(DISTINCT application_id) AS value FROM status_events WHERE status='applied' UNION ALL SELECT 'Next Step', COUNT(DISTINCT application_id) FROM status_events WHERE status='next_step' UNION ALL SELECT 'Offer', COUNT(DISTINCT application_id) FROM status_events WHERE status='offer'"
-      }]
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 10
+      },
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jobs"
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "minVizWidth": 0,
+        "minVizHeight": 10,
+        "valueMode": "color",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "table",
+          "queryText": "SELECT 'Applied' AS stage, COUNT(DISTINCT application_id) AS value FROM status_events WHERE status='applied' UNION ALL SELECT 'Next Step', COUNT(DISTINCT application_id) FROM status_events WHERE status='next_step' UNION ALL SELECT 'Offer', COUNT(DISTINCT application_id) FROM status_events WHERE status='offer'",
+          "rawQueryText": "SELECT 'Applied' AS stage, COUNT(DISTINCT application_id) AS value FROM status_events WHERE status='applied' UNION ALL SELECT 'Next Step', COUNT(DISTINCT application_id) FROM status_events WHERE status='next_step' UNION ALL SELECT 'Offer', COUNT(DISTINCT application_id) FROM status_events WHERE status='offer'"
+        }
+      ]
     },
     {
       "type": "stat",
-      "title": "Rejected (separate)",
+      "title": "Rejected",
       "id": 2,
-      "gridPos": {"x": 16, "y": 0, "w": 8, "h": 5},
-      "datasource": {"type": "frser-sqlite-datasource", "uid": "jobs"},
-      "targets": [{
-        "refId": "A",
-        "queryType": "table",
-        "queryText": "SELECT COUNT(*) AS value FROM applications WHERE current_status='rejected'"
-      }]
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jobs"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "table",
+          "queryText": "SELECT COUNT(*) AS value FROM applications WHERE current_status='rejected'",
+          "rawQueryText": "SELECT COUNT(*) AS value FROM applications WHERE current_status='rejected'"
+        }
+      ]
     },
     {
       "type": "stat",
       "title": "Applied -> Next Step Rate",
       "id": 3,
-      "gridPos": {"x": 16, "y": 5, "w": 8, "h": 5},
-      "fieldConfig": {"defaults": {"unit": "percent"}},
-      "datasource": {"type": "frser-sqlite-datasource", "uid": "jobs"},
-      "targets": [{
-        "refId": "A",
-        "queryType": "table",
-        "queryText": "SELECT 100.0 * (SELECT COUNT(DISTINCT application_id) FROM status_events WHERE status='next_step') / NULLIF((SELECT COUNT(DISTINCT application_id) FROM status_events WHERE status='applied'), 0) AS value"
-      }]
+      "gridPos": {
+        "x": 16,
+        "y": 5,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jobs"
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "table",
+          "queryText": "SELECT COALESCE(100.0 * (SELECT COUNT(DISTINCT application_id) FROM status_events WHERE status='next_step') / NULLIF((SELECT COUNT(DISTINCT application_id) FROM status_events WHERE status='applied'), 0), 0) AS value",
+          "rawQueryText": "SELECT COALESCE(100.0 * (SELECT COUNT(DISTINCT application_id) FROM status_events WHERE status='next_step') / NULLIF((SELECT COUNT(DISTINCT application_id) FROM status_events WHERE status='applied'), 0), 0) AS value"
+        }
+      ]
     }
   ]
 }
