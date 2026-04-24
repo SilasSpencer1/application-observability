@@ -2,38 +2,81 @@
 
 job_filter:
   # Skip the email entirely unless subject or body contains one of these.
+  # "applying" and "application" catch short confirmation emails that do not
+  # name the role at all.
   - engineer
   - developer
   - software
   - swe
   - intern
+  - applying
+  - application
+  - apply to
+  - apply for
 
-# Status rules are evaluated in this order; first match wins.
+# Status rules are evaluated in this order; first match wins. `rejected` is
+# checked before `next_step` so phrases like "no longer interviewing" in a
+# rejection do not get read as an interview invitation. `next_step` sits above
+# `applied` so a genuine interview request still wins when an applied phrase
+# appears alongside it.
 status_order:
   - offer
-  - next_step
   - rejected
+  - next_step
   - applied
 
 status_patterns:
   applied:
     - "thank you for applying"
-    - "we received your application"
-    - "application received"
+    - "thanks for applying"
+    - "thanks again for applying"
+    - "thanks again for taking the time to apply"
+    - "thank you for your application"
+    - "thank you for your interest"
     - "thanks for your interest"
+    - "thank you for expressing interest"
+    - "thank you for taking the time to apply"
+    - "taking the time to apply"
+    - "we received your application"
+    - "we have received your application"
+    - "your application has been received"
+    - "application has been received"
+    - "application received"
+    - "application has been submitted"
   rejected:
     - "unfortunately"
-    - "we have decided to move forward with other candidates"
+    - "we have decided to move forward with other"
+    - "we've decided to move forward with other"
+    - "we have decided to not move forward"
+    - "we've decided to not move forward"
     - "not moving forward"
     - "no longer being considered"
     - "we will not be progressing"
+    - "just filled the role"
+    - "we have filled this role"
+    - "we've filled this role"
+    - "filled this role"
+    - "filled the role"
+    - "position has been filled"
+    - "role has been filled"
+    - "no longer interviewing"
   next_step:
-    - "next step"
-    - "schedule a"
+    - "schedule a phone"
+    - "schedule a call"
+    - "schedule an interview"
+    - "schedule time to"
     - "phone screen"
-    - "interview"
+    - "invite you to interview"
+    - "invite you to a phone"
+    - "invite you to a video"
+    - "invite you to the next"
+    - "interview with"
+    - "interview is scheduled"
     - "would you be available"
+    - "are you available"
     - "recruiter would like to"
+    - "next round"
+    - "final round"
   offer:
     - "we are pleased to extend"
     - "offer letter"
@@ -60,9 +103,46 @@ ats_senders:
 # Suffixes to strip when deriving a company name from a sender display name.
 company_suffix_strip:
   - "Recruiting"
-  - "Talent"
+  - "Recruiting Team"
   - "Talent Acquisition"
+  - "Talent Team"
+  - "Talent"
+  - "Hiring Team"
+  - "Hiring"
+  - "Tech"
+  - "Technologies"
   - "Careers"
   - "People Team"
+  - "People"
+  - "HR"
   - "no-reply"
   - "noreply"
+
+# Prefixes to strip from a sender display name. Addresses like
+# "do-not-reply adobe" should yield "adobe" once the prefix is removed.
+company_prefix_strip:
+  - "do-not-reply"
+  - "do not reply"
+  - "no-reply"
+  - "noreply"
+  - "Recruiting Team at"
+  - "Hiring Team at"
+  - "Careers at"
+
+# Subdomains that are not the company name. Used to walk past "mail." or
+# "careers." when falling back to the email domain for the company.
+generic_subdomains:
+  - mail
+  - careers
+  - career
+  - hire
+  - hiring
+  - jobs
+  - apply
+  - app
+  - info
+  - hello
+  - no-reply
+  - noreply
+  - notifications
+  - notify
