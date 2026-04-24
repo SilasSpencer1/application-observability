@@ -1,0 +1,26 @@
+# Copy this file to ~/.application-observability/profile.yaml and fill it in.
+# The real profile.yaml is gitignored, this template is safe to commit.
+
+full_name: "Jane Smith"
+email: "jane@example.com"
+phone: "+1 555 123 4567"
+resume_path: "~/Documents/Resume.pdf"
+
+linkedin_url: "https://www.linkedin.com/in/jane-smith"
+github_url: "https://github.com/jane-smith"
+portfolio_url: null
+
+school: "State University"
+degree: "BS"
+major: "Computer Science"
+graduation_date: "2026-05"
+
+work_authorized_us: true
+requires_sponsorship: false
+
+# EEOC fields. Leave as "decline" to decline-to-answer on application forms.
+pronouns: null
+gender: "decline"
+race_ethnicity: "decline"
+veteran_status: "decline"
+disability_status: "decline"

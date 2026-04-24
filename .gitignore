@@ -17,6 +17,10 @@ client_secret*.json
 google_credentials*.json
 gmail_token.json
 
+# Auto-apply profile holds personal info and resume path, never commit.
+# profile.example.yaml is a safe-to-commit template.
+profile.yaml
+
 # Editor
 .vscode/
 .idea/
