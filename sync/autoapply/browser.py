@@ -21,12 +21,14 @@ def browser_harness(headless: bool = True) -> "Iterator[BrowserContext]":
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=headless)
-        context = browser.new_context(
-            accept_downloads=False,
-            viewport={"width": 1280, "height": 900},
-        )
         try:
-            yield context
+            context = browser.new_context(
+                accept_downloads=False,
+                viewport={"width": 1280, "height": 900},
+            )
+            try:
+                yield context
+            finally:
+                context.close()
         finally:
-            context.close()
             browser.close()

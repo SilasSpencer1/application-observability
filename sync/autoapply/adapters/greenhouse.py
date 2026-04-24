@@ -9,16 +9,32 @@ from sync.autoapply.models import Listing, Profile
 if TYPE_CHECKING:
     from playwright.sync_api import Locator, Page
 
-_GREENHOUSE_HOSTS = ("greenhouse.io", "boards.greenhouse.io", "job-boards.greenhouse.io")
-
 # Labels that identify the link-style custom questions Greenhouse forms
 # routinely include. Case-insensitive regex, first match wins per field.
 _LINKEDIN_LABEL = re.compile(r"linkedin", re.IGNORECASE)
 _GITHUB_LABEL = re.compile(r"github", re.IGNORECASE)
 _PORTFOLIO_LABEL = re.compile(r"portfolio|website|personal site", re.IGNORECASE)
 
-# Greenhouse marks required labels with a trailing asterisk or an aria-required attr.
+# Greenhouse marks required labels with a trailing asterisk when the control
+# itself doesn't carry the HTML required attribute (common for selects and
+# react widgets wrapped in divs).
 _REQUIRED_LABEL = re.compile(r"\*\s*$")
+
+# Placeholder option text used by common "Please select" dropdowns. A select
+# whose selected option matches any of these is treated as unfilled even if
+# its option value is non-empty.
+_SELECT_PLACEHOLDER_TEXTS = frozenset(
+    {"please select", "select...", "select one", "choose...", "choose", "--"}
+)
+
+# Path fragments that signal a Greenhouse-hosted submit went through.
+_CONFIRMATION_PATH_MARKERS = ("thanks", "confirmation", "/applications/", "success")
+
+# Greenhouse-the-company hosts their marketing and docs on these subdomains;
+# they are not application forms and must not dispatch to this adapter.
+_GREENHOUSE_MARKETING_HOSTS = frozenset(
+    {"www.greenhouse.io", "blog.greenhouse.io", "help.greenhouse.io", "about.greenhouse.io"}
+)
 
 
 class GreenhouseAdapter(Adapter):
@@ -37,7 +53,9 @@ class GreenhouseAdapter(Adapter):
 
     def can_handle(self, url: str) -> bool:
         host = urlparse(url).netloc.lower()
-        return any(host == h or host.endswith("." + h) for h in _GREENHOUSE_HOSTS)
+        if host in _GREENHOUSE_MARKETING_HOSTS:
+            return False
+        return host.endswith(".greenhouse.io")
 
     def apply(self, page: "Page", listing: Listing, profile: Profile) -> ApplyResult:
         try:
@@ -124,25 +142,119 @@ def _fill_by_label(page: "Page", label_pattern: re.Pattern, value: str) -> None:
 
 
 def _required_fields_left_unfilled(page: "Page") -> list[str]:
-    """Return labels (or id fallbacks) of required fields that are still blank."""
+    """Return names of required fields that are still blank.
+
+    Checks three independent signals, each of which Greenhouse forms rely on:
+      1. the HTML `required` attribute on input/select/textarea
+      2. `aria-required="true"` on any element (used by react-widget selects)
+      3. a <label> whose visible text ends with '*', resolved to its control
+         via the `for=` attribute
+
+    Dedupes by element id so a field hit by multiple signals reports once.
+    """
     names: list[str] = []
-    inputs = page.locator(
-        "input[required]:visible, select[required]:visible, textarea[required]:visible"
+    seen: set[str] = set()
+
+    _collect_from_selector(
+        page,
+        "input[required]:visible, select[required]:visible, textarea[required]:visible",
+        names,
+        seen,
     )
-    for i in range(inputs.count()):
-        el = inputs.nth(i)
-        field_type = (el.get_attribute("type") or "").lower()
-        if field_type in {"hidden", "submit", "button"}:
-            continue
-        if field_type == "file":
-            # Playwright cannot read input_value on a file field; assume the
-            # set_input_files call above handled it.
-            continue
-        value = (el.input_value() or "").strip()
-        if value:
-            continue
-        names.append(_best_field_name(el))
+    _collect_from_selector(
+        page,
+        "[aria-required='true']:visible",
+        names,
+        seen,
+    )
+    _collect_from_asterisk_labels(page, names, seen)
+
     return names
+
+
+def _collect_from_selector(page: "Page", selector: str, names: list[str], seen: set[str]) -> None:
+    locator = page.locator(selector)
+    for i in range(locator.count()):
+        el = locator.nth(i)
+        key = _dedup_key(el)
+        if key in seen:
+            continue
+        if not _is_unfilled(el):
+            continue
+        seen.add(key)
+        names.append(_best_field_name(el))
+
+
+def _collect_from_asterisk_labels(page: "Page", names: list[str], seen: set[str]) -> None:
+    labels = page.locator("label")
+    for i in range(labels.count()):
+        label = labels.nth(i)
+        try:
+            text = (label.inner_text() or "").strip()
+        except Exception:
+            continue
+        if not _REQUIRED_LABEL.search(text):
+            continue
+        target_id = label.get_attribute("for")
+        if not target_id or f"#{target_id}" in seen:
+            continue
+        target = page.locator(f"#{target_id}")
+        if target.count() == 0:
+            continue
+        el = target.first
+        if not _is_unfilled(el):
+            continue
+        seen.add(f"#{target_id}")
+        names.append(target_id)
+
+
+def _dedup_key(el: "Locator") -> str:
+    el_id = el.get_attribute("id")
+    if el_id:
+        return f"#{el_id}"
+    name = el.get_attribute("name")
+    if name:
+        return f"name:{name}"
+    return f"loc:{id(el)}"
+
+
+def _is_unfilled(el: "Locator") -> bool:
+    try:
+        tag = el.evaluate("e => e.tagName.toLowerCase()")
+    except Exception:
+        return False
+    field_type = (el.get_attribute("type") or "").lower()
+    # File uploads are handled by the set_input_files call higher up, and the
+    # file-input widget does not expose its value via input_value() reliably.
+    if tag == "input" and field_type in {"hidden", "submit", "button", "file"}:
+        return False
+    if tag == "select":
+        try:
+            selected = el.evaluate(
+                "e => { const o = e.options[e.selectedIndex];"
+                " return { value: e.value, text: o ? o.text : '' }; }"
+            )
+        except Exception:
+            return False
+        value = (selected.get("value") or "").strip()
+        text = (selected.get("text") or "").strip().lower()
+        if not value:
+            return True
+        # Non-empty value but the option text matches a known placeholder
+        # (some forms use "please select" as both label and value).
+        return text in _SELECT_PLACEHOLDER_TEXTS
+    if tag in {"input", "textarea"}:
+        try:
+            value = (el.input_value() or "").strip()
+        except Exception:
+            return False
+        return not value
+    # Unknown element (e.g. a div[aria-required]): fall back to text content.
+    try:
+        text = (el.inner_text() or "").strip()
+    except Exception:
+        return True
+    return not text
 
 
 def _best_field_name(el: "Locator") -> str:
@@ -167,17 +279,21 @@ def _find_submit_button(page: "Page"):
 
 
 def _submitted(page: "Page", before_url: str) -> bool:
-    """Best-effort signal that Greenhouse accepted the submission.
+    """Signal that Greenhouse accepted the submission.
 
-    Greenhouse's hosted forms redirect to a URL containing 'thanks',
-    'confirmation', or an application id path segment. For local-fixture
-    tests a post-submit page with a confirmation element works too.
+    A bare URL change is not enough: Greenhouse validation errors can
+    redirect to an error page on the same path. We require either a
+    known-confirmation path marker on a changed URL, or a confirmation
+    element on the post-submit page.
     """
     try:
         page.wait_for_load_state("domcontentloaded", timeout=15_000)
     except Exception:
         pass
-    if page.url != before_url:
+    url = page.url
+    if url != before_url and any(m in url for m in _CONFIRMATION_PATH_MARKERS):
         return True
-    confirmation = page.locator("[data-testid='confirmation'], .confirmation, #confirmation")
+    confirmation = page.locator(
+        "[data-testid='confirmation'], .confirmation, #confirmation"
+    )
     return confirmation.count() > 0

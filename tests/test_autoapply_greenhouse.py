@@ -61,6 +61,15 @@ def test_can_handle_rejects_other_hosts():
     assert a.can_handle("https://linkedin.com/jobs/view/123") is False
 
 
+def test_can_handle_rejects_marketing_hosts():
+    # The marketing, blog, and docs subdomains must not dispatch here.
+    a = GreenhouseAdapter()
+    assert a.can_handle("https://greenhouse.io/") is False
+    assert a.can_handle("https://www.greenhouse.io/careers") is False
+    assert a.can_handle("https://blog.greenhouse.io/post") is False
+    assert a.can_handle("https://help.greenhouse.io/article") is False
+
+
 def test_apply_fills_all_known_fields_and_submits(resume, listing):
     profile = _make_profile(resume, portfolio="https://jane.dev")
     adapter = GreenhouseAdapter()
@@ -144,6 +153,117 @@ def test_apply_returns_needs_review_when_required_field_blank(resume, listing, t
 
     assert result.status is ApplyStatus.NEEDS_REVIEW
     assert result.unfilled_fields, "expected at least one unfilled field name"
+
+
+def _write_fixture_with_extra_field(tmp_path: Path, extra_html: str) -> Path:
+    """Copy the baseline fixture and inject extra HTML just before the submit button."""
+    text = FIXTURE_PATH.read_text().replace(
+        '<button id="submit_app"',
+        extra_html + '<button id="submit_app"',
+    )
+    out = tmp_path / "with_extra.html"
+    out.write_text(text)
+    return out
+
+
+def test_aria_required_field_without_required_attr_is_detected(resume, tmp_path):
+    # Greenhouse custom widgets often set aria-required='true' on a control
+    # that has no HTML required attribute. Leaving such a field blank must
+    # prevent submit.
+    fixture = _write_fixture_with_extra_field(
+        tmp_path,
+        '<label for="q_aria">Custom Q *</label>'
+        '<input id="q_aria" name="custom_q" aria-required="true">',
+    )
+    listing = Listing(
+        company="Acme", role="Software Engineer I", location="NYC",
+        apply_url=fixture.as_uri(), source="test",
+    )
+    profile = _make_profile(resume, portfolio="https://jane.dev")
+
+    adapter = GreenhouseAdapter()
+    with browser_harness(headless=True) as ctx:
+        page = ctx.new_page()
+        result = adapter.apply(page, listing, profile)
+
+    assert result.status is ApplyStatus.NEEDS_REVIEW
+    assert "q_aria" in result.unfilled_fields or "custom_q" in result.unfilled_fields
+
+
+def test_required_select_with_placeholder_option_is_detected(resume, tmp_path):
+    # A select whose selected option is 'Please select' (even with a
+    # non-empty value attr) must register as unfilled.
+    fixture = _write_fixture_with_extra_field(
+        tmp_path,
+        '<label for="q_authz">Work Authorization *</label>'
+        '<select id="q_authz" name="work_authz" required>'
+        '  <option value="0">Please select</option>'
+        '  <option value="yes">Yes</option>'
+        '  <option value="no">No</option>'
+        '</select>',
+    )
+    listing = Listing(
+        company="Acme", role="Software Engineer I", location="NYC",
+        apply_url=fixture.as_uri(), source="test",
+    )
+    profile = _make_profile(resume, portfolio="https://jane.dev")
+
+    adapter = GreenhouseAdapter()
+    with browser_harness(headless=True) as ctx:
+        page = ctx.new_page()
+        result = adapter.apply(page, listing, profile)
+
+    assert result.status is ApplyStatus.NEEDS_REVIEW
+    assert "q_authz" in result.unfilled_fields or "work_authz" in result.unfilled_fields
+
+
+def test_label_ending_in_asterisk_is_detected_even_without_required_attr(resume, tmp_path):
+    # Legacy forms sometimes render the asterisk as part of the <label> text
+    # with no required attribute on the control. The guard walks labels to
+    # catch these.
+    fixture = _write_fixture_with_extra_field(
+        tmp_path,
+        '<label for="q_legacy">Legacy Required *</label>'
+        '<input id="q_legacy" name="legacy">',
+    )
+    listing = Listing(
+        company="Acme", role="Software Engineer I", location="NYC",
+        apply_url=fixture.as_uri(), source="test",
+    )
+    profile = _make_profile(resume, portfolio="https://jane.dev")
+
+    adapter = GreenhouseAdapter()
+    with browser_harness(headless=True) as ctx:
+        page = ctx.new_page()
+        result = adapter.apply(page, listing, profile)
+
+    assert result.status is ApplyStatus.NEEDS_REVIEW
+    assert "q_legacy" in result.unfilled_fields
+
+
+def test_required_select_with_filled_non_placeholder_option_passes(resume, tmp_path):
+    # Control case: a required select with a real non-placeholder option
+    # selected should not trigger NEEDS_REVIEW.
+    fixture = _write_fixture_with_extra_field(
+        tmp_path,
+        '<label for="q_country">Country *</label>'
+        '<select id="q_country" name="country" required>'
+        '  <option value="US" selected>United States</option>'
+        '  <option value="CA">Canada</option>'
+        '</select>',
+    )
+    listing = Listing(
+        company="Acme", role="Software Engineer I", location="NYC",
+        apply_url=fixture.as_uri(), source="test",
+    )
+    profile = _make_profile(resume, portfolio="https://jane.dev")
+
+    adapter = GreenhouseAdapter()
+    with browser_harness(headless=True) as ctx:
+        page = ctx.new_page()
+        result = adapter.apply(page, listing, profile)
+
+    assert result.status is ApplyStatus.SUCCESS, result.message
 
 
 def test_apply_fails_when_page_does_not_load(resume, tmp_path):
