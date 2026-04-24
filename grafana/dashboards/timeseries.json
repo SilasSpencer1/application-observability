@@ -136,8 +136,8 @@
         {
           "refId": "A",
           "queryType": "table",
-          "queryText": "SELECT strftime('%Y-W%W', applied_at) AS Week, COUNT(*) AS Applications FROM applications WHERE applied_at IS NOT NULL GROUP BY Week ORDER BY Week",
-          "rawQueryText": "SELECT strftime('%Y-W%W', applied_at) AS Week, COUNT(*) AS Applications FROM applications WHERE applied_at IS NOT NULL GROUP BY Week ORDER BY Week"
+          "queryText": "SELECT strftime('%m/%d', date(applied_at, '-' || ((strftime('%w', applied_at) + 6) % 7) || ' days')) AS Week, COUNT(*) AS Applications FROM applications WHERE applied_at IS NOT NULL GROUP BY date(applied_at, '-' || ((strftime('%w', applied_at) + 6) % 7) || ' days') ORDER BY date(applied_at, '-' || ((strftime('%w', applied_at) + 6) % 7) || ' days')",
+          "rawQueryText": "SELECT strftime('%m/%d', date(applied_at, '-' || ((strftime('%w', applied_at) + 6) % 7) || ' days')) AS Week, COUNT(*) AS Applications FROM applications WHERE applied_at IS NOT NULL GROUP BY date(applied_at, '-' || ((strftime('%w', applied_at) + 6) % 7) || ' days') ORDER BY date(applied_at, '-' || ((strftime('%w', applied_at) + 6) % 7) || ' days')"
         }
       ]
     },
