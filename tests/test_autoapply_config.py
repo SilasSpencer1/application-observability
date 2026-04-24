@@ -105,6 +105,7 @@ def test_resume_path_expands_tilde(tmp_path, monkeypatch):
     resume = home / "resume.pdf"
     resume.write_text("fake")
     monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
 
     profile_path = _write(
         tmp_path / "profile.yaml",
@@ -128,6 +129,14 @@ def test_eeoc_defaults_when_omitted(tmp_path):
     assert profile.veteran_status == "decline"
     assert profile.disability_status == "decline"
     assert profile.pronouns is None
+
+
+def test_empty_string_required_field_is_rejected(tmp_path):
+    resume = tmp_path / "resume.pdf"
+    resume.write_text("fake")
+    profile_path = _write(tmp_path / "profile.yaml", _complete_profile_data(resume, school="   "))
+    with pytest.raises(ValueError, match="school"):
+        load_profile(profile_path)
 
 
 def test_non_mapping_yaml_raises(tmp_path):
