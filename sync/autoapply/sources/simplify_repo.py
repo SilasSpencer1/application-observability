@@ -18,12 +18,16 @@ _TD_RE = re.compile(r"<td[^>]*>(.*?)</td>", re.DOTALL | re.IGNORECASE)
 _HREF_RE = re.compile(r'href="([^"]+)"')
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
 _WHITESPACE_RE = re.compile(r"\s+")
+# Any <br>, <BR>, <br/>, <br class="...">, or </br>, used to split a cell
+# that holds multiple locations into newline-separated parts before tags
+# are stripped.
+_BR_RE = re.compile(r"<\s*/?\s*br\s*[^>]*>", re.IGNORECASE)
 
 # Prefix emoji the Simplify legend uses on company names.
 _COMPANY_EMOJI = ("🔥", "🛂", "🇺🇸", "🎓", "🔒")
 
-# Marks a "same company as above" continuation row.
-_CONTINUATION_MARKERS = {"↳", "↳"}
+# "Same company as above" continuation marker. Simplify uses U+21B3.
+_CONTINUATION_MARKERS = {"↳"}
 
 
 class SimplifyReadmeSource(ListingSource):
@@ -115,12 +119,7 @@ def _clean_text(html: str) -> str:
 
 
 def _clean_location(cell: str) -> str | None:
-    expanded = (
-        cell.replace("</br>", "\n")
-        .replace("<br>", "\n")
-        .replace("<br/>", "\n")
-        .replace("<br />", "\n")
-    )
+    expanded = _BR_RE.sub("\n", cell)
     text = _HTML_TAG_RE.sub("", expanded)
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     if not lines:
@@ -131,6 +130,10 @@ def _clean_location(cell: str) -> str | None:
 def _first_href_matching(
     cell: str, *, exclude_simplify: bool = False, only_simplify: bool = False
 ) -> str | None:
+    # Order-dependent: Simplify conventionally places the ATS anchor first
+    # and the simplify.jobs/p/ redirect second. If that order flips, the
+    # exclude_simplify path still does the right thing but only_simplify
+    # would return the correct (Simplify) URL regardless of position.
     for href in _HREF_RE.findall(cell):
         is_simplify = "simplify.jobs/p/" in href
         if only_simplify and not is_simplify:

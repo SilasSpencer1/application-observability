@@ -76,11 +76,26 @@ def test_parse_listings_multi_location_uses_slash_separator(snippet_text):
     assert gumloop.location == "San Francisco, CA / Vancouver, BC, CAN"
 
 
-def test_parse_listings_ignores_senior_roles_too_filter_is_not_in_parser(snippet_text):
+def test_parser_does_not_apply_seniority_filter(snippet_text):
     # Seniority filtering belongs to filter.py. The parser should still yield
     # a SeniorCorp listing; it's the caller's job to drop it later.
     companies = [l.company for l in parse_listings(snippet_text)]
     assert "SeniorCorp" in companies
+
+
+def test_br_variants_split_locations_correctly():
+    # Covers <br>, <br/>, <br />, <BR>, </br>, and <br class="x">.
+    row = """
+<tr>
+<td><strong>Co</strong></td>
+<td>SWE</td>
+<td>NYC</br>LA<br/>SF<br />Austin<BR>Seattle<br class="x">Boston</td>
+<td><a href="https://example.com/apply">Apply</a></td>
+<td>0d</td>
+</tr>
+"""
+    listing = next(iter(parse_listings(row)))
+    assert listing.location == "NYC / LA / SF / Austin / Seattle / Boston"
 
 
 def test_source_uses_injected_fetch(snippet_text):
