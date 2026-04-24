@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 from sync.db import Database
 from sync.classifier import Classifier
-from sync.sync import run_sync, RULES_PATH
+from sync.sync import run_sync, build_client, RULES_PATH
 
 
 class FakeClient:
@@ -70,3 +70,41 @@ def test_run_sync_counts_duplicates(tmp_path, classifier):
     counts = run_sync(FakeClient([m]), classifier, db, since_iso=None)
     assert counts["duplicates"] == 1
     assert counts["recorded"] == 0
+
+
+def test_build_client_rejects_unknown_provider():
+    with pytest.raises(RuntimeError, match="Unknown AAO_PROVIDER"):
+        build_client("outlook")
+
+
+def test_build_client_gmail_requires_credentials_path(monkeypatch):
+    monkeypatch.delenv("AAO_GOOGLE_CREDENTIALS", raising=False)
+    with pytest.raises(RuntimeError, match="AAO_GOOGLE_CREDENTIALS"):
+        build_client("gmail")
+
+
+def test_build_client_graph_requires_client_id(monkeypatch):
+    monkeypatch.delenv("AAO_CLIENT_ID", raising=False)
+    with pytest.raises(RuntimeError, match="AAO_CLIENT_ID"):
+        build_client("graph")
+
+
+def test_build_client_gmail_returns_gmail_client(tmp_path, monkeypatch):
+    fake_creds = tmp_path / "google_credentials.json"
+    fake_creds.write_text('{"installed": {"client_id": "x"}}')
+    monkeypatch.setenv("AAO_GOOGLE_CREDENTIALS", str(fake_creds))
+    from sync.gmail_client import GmailClient
+
+    client = build_client("gmail")
+    assert isinstance(client, GmailClient)
+    assert client.credentials_path == fake_creds
+
+
+def test_build_client_graph_returns_graph_client(monkeypatch):
+    monkeypatch.setenv("AAO_CLIENT_ID", "fake-client-id")
+    monkeypatch.setenv("AAO_TENANT", "common")
+    from sync.graph_client import GraphClient
+
+    client = build_client("graph")
+    assert isinstance(client, GraphClient)
+    assert client.client_id == "fake-client-id"
