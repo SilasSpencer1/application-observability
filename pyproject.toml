@@ -1,12 +1,14 @@
 [project]
 name = "application-observability"
 version = "0.1.0"
-description = "Local job-application tracking from Outlook to Grafana"
+description = "Local job-application tracking from Gmail to Grafana"
 requires-python = ">=3.11"
 dependencies = [
     "requests>=2.31",
     "pyyaml>=6.0",
-    "msal>=1.26",
+    "google-api-python-client>=2.120",
+    "google-auth-oauthlib>=1.2",
+    "google-auth-httplib2>=0.2",
 ]
 
 [project.optional-dependencies]
