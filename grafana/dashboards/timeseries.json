@@ -69,8 +69,8 @@
           "timeColumns": [
             "time"
           ],
-          "queryText": "SELECT CAST(strftime('%s', applied_at) AS INTEGER) AS time, (SELECT COUNT(*) FROM applications a2 WHERE a2.applied_at <= a.applied_at) AS value FROM applications a ORDER BY applied_at",
-          "rawQueryText": "SELECT CAST(strftime('%s', applied_at) AS INTEGER) AS time, (SELECT COUNT(*) FROM applications a2 WHERE a2.applied_at <= a.applied_at) AS value FROM applications a ORDER BY applied_at"
+          "queryText": "SELECT CAST(strftime('%s', applied_at) AS INTEGER) AS time, (SELECT COUNT(*) FROM applications a2 WHERE a2.applied_at IS NOT NULL AND a2.applied_at <= a.applied_at) AS value FROM applications a WHERE applied_at IS NOT NULL ORDER BY applied_at",
+          "rawQueryText": "SELECT CAST(strftime('%s', applied_at) AS INTEGER) AS time, (SELECT COUNT(*) FROM applications a2 WHERE a2.applied_at IS NOT NULL AND a2.applied_at <= a.applied_at) AS value FROM applications a WHERE applied_at IS NOT NULL ORDER BY applied_at"
         }
       ]
     },
@@ -136,8 +136,8 @@
         {
           "refId": "A",
           "queryType": "table",
-          "queryText": "SELECT strftime('%Y-W%W', applied_at) AS Week, COUNT(*) AS Applications FROM applications GROUP BY Week ORDER BY Week",
-          "rawQueryText": "SELECT strftime('%Y-W%W', applied_at) AS Week, COUNT(*) AS Applications FROM applications GROUP BY Week ORDER BY Week"
+          "queryText": "SELECT strftime('%Y-W%W', applied_at) AS Week, COUNT(*) AS Applications FROM applications WHERE applied_at IS NOT NULL GROUP BY Week ORDER BY Week",
+          "rawQueryText": "SELECT strftime('%Y-W%W', applied_at) AS Week, COUNT(*) AS Applications FROM applications WHERE applied_at IS NOT NULL GROUP BY Week ORDER BY Week"
         }
       ]
     },
@@ -203,8 +203,8 @@
         {
           "refId": "A",
           "queryType": "table",
-          "queryText": "SELECT a.company AS Company, CAST((julianday(MIN(e2.occurred_at)) - julianday(a.applied_at)) AS INTEGER) AS Days FROM applications a JOIN status_events e2 ON e2.application_id = a.id AND e2.status != 'applied' GROUP BY a.id ORDER BY Days",
-          "rawQueryText": "SELECT a.company AS Company, CAST((julianday(MIN(e2.occurred_at)) - julianday(a.applied_at)) AS INTEGER) AS Days FROM applications a JOIN status_events e2 ON e2.application_id = a.id AND e2.status != 'applied' GROUP BY a.id ORDER BY Days"
+          "queryText": "SELECT a.company AS Company, CAST((julianday(MIN(e2.occurred_at)) - julianday(a.applied_at)) AS INTEGER) AS Days FROM applications a JOIN status_events e2 ON e2.application_id = a.id AND e2.status != 'applied' WHERE a.applied_at IS NOT NULL GROUP BY a.id ORDER BY Days",
+          "rawQueryText": "SELECT a.company AS Company, CAST((julianday(MIN(e2.occurred_at)) - julianday(a.applied_at)) AS INTEGER) AS Days FROM applications a JOIN status_events e2 ON e2.application_id = a.id AND e2.status != 'applied' WHERE a.applied_at IS NOT NULL GROUP BY a.id ORDER BY Days"
         }
       ]
     }
