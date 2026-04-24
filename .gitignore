@@ -12,6 +12,11 @@ venv/
 .env
 ~/.application-observability/
 
+# Google OAuth credentials (never commit)
+client_secret*.json
+google_credentials*.json
+gmail_token.json
+
 # Editor
 .vscode/
 .idea/
