@@ -6,9 +6,15 @@ import yaml
 
 _QUOTED = re.compile(r'"([^"]+)"')
 
+# Job titles often include commas, parentheses, ampersands, apostrophes, dashes
+# and slashes. Role names start with a capital letter since formal emails use
+# Title Case.
+_ROLE_CHARS = r"[A-Za-z0-9 ,\-/()&'.]"
+
 ROLE_PATTERNS = [
-    re.compile(r"\bthe ([A-Z][\w \-/]+?) (?:role|position)"),                 # "...the X role/position..."
-    re.compile(r"received your application for (?:the )?([A-Z][\w \-/]+?)(?:\.|$|\n|\s+(?:role|position|at)\b)"),
+    re.compile(rf"\bthe ([A-Z]{_ROLE_CHARS}+?) (?:role|position)"),
+    re.compile(rf"received your application for (?:the )?([A-Z]{_ROLE_CHARS}+?)(?:\.|$|\n|\s+(?:role|position|at)\b)"),
+    re.compile(rf"apply(?:ing)? for (?:the )?([A-Z]{_ROLE_CHARS}+?)\s+(?:here\s+)?at\b", re.IGNORECASE),
 ]
 
 @dataclass(frozen=True)
