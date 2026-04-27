@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head><title>Sample Greenhouse Application</title></head>
+<body>
+<h1>Software Engineer I</h1>
+<form id="application_form" onsubmit="document.body.innerHTML = '<div id=\'confirmation\'>Thanks for applying!</div>'; return false;">
+  <label for="first_name">First Name *</label>
+  <input id="first_name" name="first_name" required>
+
+  <label for="last_name">Last Name *</label>
+  <input id="last_name" name="last_name" required>
+
+  <label for="email">Email *</label>
+  <input id="email" name="email" type="email" required>
+
+  <label for="phone">Phone</label>
+  <input id="phone" name="phone" type="tel">
+
+  <label for="resume">Resume *</label>
+  <input id="resume" name="resume" type="file" required>
+
+  <label for="q_linkedin">LinkedIn Profile *</label>
+  <input id="q_linkedin" name="question_1001" required>
+
+  <label for="q_github">GitHub URL</label>
+  <input id="q_github" name="question_1002">
+
+  <label for="q_portfolio">Personal Website</label>
+  <input id="q_portfolio" name="question_1003">
+
+  <button id="submit_app" type="submit">Submit Application</button>
+</form>
+</body>
+</html>
